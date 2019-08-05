@@ -1,5 +1,7 @@
 #include <windows.h>
 
+static bool bRunning = true;
+
 LRESULT CALLBACK MainWindowCallback(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam)
 {
 	LRESULT Result = 0;
@@ -9,10 +11,12 @@ LRESULT CALLBACK MainWindowCallback(HWND Window, UINT Message, WPARAM WParam, LP
 	}
 	else if (Message == WM_DESTROY)
 	{
+		bRunning = false;
 		OutputDebugStringA("WM_DESTROY\n");
 	}
 	else if (Message == WM_CLOSE)
 	{
+		bRunning = false;
 		OutputDebugStringA("WM_CLOSE\n");
 	}
 	else if (Message == WM_ACTIVATEAPP)
@@ -64,7 +68,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 		if (WindowHandle)
 		{
 			MSG Message;
-			for (;;)
+			while (bRunning)
 			{
 				BOOL MessageResult = GetMessage(&Message, 0, 0, 0);
 				if (MessageResult > 0)
