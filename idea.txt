@@ -1,3 +1,0 @@
-Roguelike-mini dungeons where completing one rewards the player by the way he chooses.
-Those rewards might be a thing that helps his luck with finding certain items types
-in next "dungeons".
