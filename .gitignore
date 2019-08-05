@@ -262,3 +262,5 @@ __pycache__/
 
 # Added by me (FX)
 *.sln
+*.vcxproj
+*.vcxproj.filters
