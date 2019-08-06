@@ -1,41 +1,83 @@
 #include <windows.h>
 
 static bool bRunning = true;
+static BITMAPINFO BitmapInfo;
+static void *BitmapMemory;
+static HBITMAP BitmapHandle;
+static HDC BitmapDeviceContext;
+
+static void ResizeDIBSection(int Width, int Height)
+{
+	if (BitmapHandle)
+	{
+		DeleteObject(BitmapHandle);
+	}
+	
+	if (BitmapDeviceContext)
+	{
+		BitmapDeviceContext = CreateCompatibleDC(0);
+	}
+
+	BitmapInfo.bmiHeader.biSize = sizeof(BitmapInfo.bmiHeader);
+	BitmapInfo.bmiHeader.biWidth = Width;
+	BitmapInfo.bmiHeader.biHeight = Height;
+	BitmapInfo.bmiHeader.biPlanes = 1;
+	BitmapInfo.bmiHeader.biBitCount = 32;
+	BitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+	BitmapHandle = CreateDIBSection(BitmapDeviceContext, &BitmapInfo, DIB_RGB_COLORS, &BitmapMemory, 0, 0);
+}
+
+static void UpdateClientWindow(HDC DeviceContext, int Left, int Top, int Width, int Height)
+{
+	StretchDIBits(DeviceContext, Left, Top, Width, Height, Left, Top, Width, Height, BitmapMemory, &BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+}
 
 LRESULT CALLBACK MainWindowCallback(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam)
 {
 	LRESULT Result = 0;
-	if (Message == WM_SIZE)
-	{
-		OutputDebugStringA("WM_SIZE\n");
-	}
-	else if (Message == WM_DESTROY)
-	{
-		bRunning = false;
-		OutputDebugStringA("WM_DESTROY\n");
-	}
-	else if (Message == WM_CLOSE)
-	{
-		bRunning = false;
-		OutputDebugStringA("WM_CLOSE\n");
-	}
-	else if (Message == WM_ACTIVATEAPP)
-	{
-		OutputDebugStringA("WM_ACTIVATEAPP\n");
-	}
-	else if (Message == WM_PAINT)
-	{
-		PAINTSTRUCT P;
-		HDC DeviceContext = BeginPaint(Window, &P);
-		PatBlt(DeviceContext, P.rcPaint.left, P.rcPaint.top, P.rcPaint.right - P.rcPaint.left, P.rcPaint.bottom - P.rcPaint.top, WHITENESS);
-		EndPaint(Window, &P);
-	}
-	else
-	{
-		OutputDebugStringA("Default message received.\n");
-		Result = DefWindowProc(Window, Message, WParam, LParam);
-	}
 
+	switch (Message)
+	{
+		case WM_SIZE:
+		{
+			RECT ClientRect;
+			GetClientRect(Window, &ClientRect);
+			ResizeDIBSection(ClientRect.right - ClientRect.left, ClientRect.bottom - ClientRect.top);
+			OutputDebugStringA("WM_SIZE\n");
+		} break;
+
+		case WM_DESTROY:
+		{
+			bRunning = false;
+			OutputDebugStringA("WM_DESTROY\n");
+		} break;
+
+		case WM_CLOSE:
+		{
+			bRunning = false;
+			OutputDebugStringA("WM_CLOSE\n");
+		} break;
+
+		case WM_ACTIVATEAPP:
+		{
+			OutputDebugStringA("WM_ACTIVATEAPP\n");
+		} break;
+
+		case WM_PAINT:
+		{
+			PAINTSTRUCT P;
+			HDC DeviceContext = BeginPaint(Window, &P);
+			UpdateClientWindow(DeviceContext, P.rcPaint.left, P.rcPaint.top, P.rcPaint.right - P.rcPaint.left, P.rcPaint.bottom - P.rcPaint.top);
+			EndPaint(Window, &P);
+		} break;
+
+		default:
+		{
+			OutputDebugStringA("Default message received.\n");
+			Result = DefWindowProc(Window, Message, WParam, LParam);
+		} break;
+	}
 	return Result;
 }
 
