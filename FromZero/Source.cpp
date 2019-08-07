@@ -3,34 +3,57 @@
 static bool bRunning = true;
 static BITMAPINFO BitmapInfo;
 static void *BitmapMemory;
-static HBITMAP BitmapHandle;
-static HDC BitmapDeviceContext;
+static int BitmapWidth;
+static int BitmapHeight;
 
 static void ResizeDIBSection(int Width, int Height)
 {
-	if (BitmapHandle)
+	if (BitmapMemory)
 	{
-		DeleteObject(BitmapHandle);
-	}
-	
-	if (!BitmapDeviceContext)
-	{
-		BitmapDeviceContext = CreateCompatibleDC(0);
+		VirtualFree(BitmapMemory, 0, MEM_RELEASE);
 	}
 
+	BitmapWidth = Width;
+	BitmapHeight = Height;
+
 	BitmapInfo.bmiHeader.biSize = sizeof(BitmapInfo.bmiHeader);
-	BitmapInfo.bmiHeader.biWidth = Width;
-	BitmapInfo.bmiHeader.biHeight = Height;
+	BitmapInfo.bmiHeader.biWidth = BitmapWidth;
+	BitmapInfo.bmiHeader.biHeight = -BitmapHeight; //negative so the bitmap is a top-down DIB with the origin at the upper left corner.
 	BitmapInfo.bmiHeader.biPlanes = 1;
 	BitmapInfo.bmiHeader.biBitCount = 32;
 	BitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-	BitmapHandle = CreateDIBSection(BitmapDeviceContext, &BitmapInfo, DIB_RGB_COLORS, &BitmapMemory, 0, 0);
+	int BytesPerPixel = 4;
+	BitmapMemory = VirtualAlloc(0, BytesPerPixel * BitmapWidth * BitmapHeight, MEM_COMMIT, PAGE_READWRITE);
+
+	int Pitch = Width * BytesPerPixel;
+	UINT8* Row = (UINT8*)BitmapMemory;	//8 bit because when we would do "Row + x", the x will be multiplied by the size of the object (pointer arithmetic)
+	for (int Y = 0; Y < BitmapHeight; ++Y)
+	{
+		UINT8 *Pixel = (UINT8*)Row;
+		for (int X = 0; X < BitmapWidth; ++X)
+		{
+			*Pixel = (UINT8)X;
+			++Pixel;
+
+			*Pixel = (UINT8)Y;
+			++Pixel;
+
+			*Pixel = (UINT8)Y * (UINT8)X;
+			++Pixel;
+
+			*Pixel = 0;
+			++Pixel;
+		}
+		Row += Pitch;
+	}
 }
 
-static void UpdateClientWindow(HDC DeviceContext, int Left, int Top, int Width, int Height)
+static void UpdateClientWindow(RECT *WindowRect, HDC DeviceContext, int Left, int Top, int Width, int Height)
 {
-	StretchDIBits(DeviceContext, Left, Top, Width, Height, Left, Top, Width, Height, BitmapMemory, &BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+	int WindowWidth = WindowRect->right - WindowRect->left;
+	int WindowHeight = WindowRect->bottom - WindowRect->top;
+	StretchDIBits(DeviceContext, 0, 0, BitmapWidth, BitmapHeight, 0, 0, WindowWidth, WindowHeight, BitmapMemory, &BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 }
 
 LRESULT CALLBACK MainWindowCallback(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam)
@@ -68,7 +91,10 @@ LRESULT CALLBACK MainWindowCallback(HWND Window, UINT Message, WPARAM WParam, LP
 		{
 			PAINTSTRUCT P;
 			HDC DeviceContext = BeginPaint(Window, &P);
-			UpdateClientWindow(DeviceContext, P.rcPaint.left, P.rcPaint.top, P.rcPaint.right - P.rcPaint.left, P.rcPaint.bottom - P.rcPaint.top);
+			RECT ClientRect;
+			GetClientRect(Window, &ClientRect);
+
+			UpdateClientWindow(&ClientRect, DeviceContext, P.rcPaint.left, P.rcPaint.top, P.rcPaint.right - P.rcPaint.left, P.rcPaint.bottom - P.rcPaint.top);
 			EndPaint(Window, &P);
 		} break;
 
