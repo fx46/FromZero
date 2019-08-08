@@ -7,11 +7,28 @@ struct PixelBuffer
 	int BitmapWidth;
 	int BitmapHeight;
 	int Pitch;
-	int BytesPerPixel;
+	int BytesPerPixel = 4;
 };
 
 static bool bRunning = true;
 static PixelBuffer Buffer;
+
+struct WindowDimension
+{
+	int Width;
+	int Height;
+};
+
+WindowDimension GetWindowDimention(HWND WindowHandle)
+{
+	RECT ClientRect;
+	GetClientRect(WindowHandle, &ClientRect);
+	WindowDimension Result;
+	Result.Width = ClientRect.right - ClientRect.left;
+	Result.Height = ClientRect.bottom - ClientRect.top;
+
+	return Result;
+}
 
 static void RenderGradient(PixelBuffer *Buffer, int XOffset, int YOffset)
 {
@@ -38,7 +55,6 @@ static void ResizeDIBSection(PixelBuffer *Buffer, int Width, int Height)
 		VirtualFree(Buffer->BitmapMemory, 0, MEM_RELEASE);
 	}
 
-	Buffer->BytesPerPixel = 4;
 	Buffer->BitmapWidth = Width;
 	Buffer->BitmapHeight = Height;
 	Buffer->BitmapInfo.bmiHeader.biSize = sizeof(Buffer->BitmapInfo.bmiHeader);
@@ -52,14 +68,12 @@ static void ResizeDIBSection(PixelBuffer *Buffer, int Width, int Height)
 	Buffer->Pitch = Buffer->BitmapWidth * Buffer->BytesPerPixel;
 }
 
-static void CopyBufferToWindow(PixelBuffer *Buffer, RECT WindowRect, HDC DeviceContext, int Left, int Top, int Width, int Height)
+static void DisplayBufferToWindow(PixelBuffer *Buffer, WindowDimension Dimension, HDC DeviceContext, int Left, int Top)
 {
-	int WindowWidth = WindowRect.right - WindowRect.left;
-	int WindowHeight = WindowRect.bottom - WindowRect.top;
-	StretchDIBits(DeviceContext, 0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, 0, 0, WindowWidth, WindowHeight, Buffer->BitmapMemory, &Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+	StretchDIBits(DeviceContext, 0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, 0, 0, Dimension.Width, Dimension.Height, Buffer->BitmapMemory, &Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 }
 
-LRESULT CALLBACK MainWindowCallback(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam)
+LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPARAM WParam, LPARAM LParam)
 {
 	LRESULT Result = 0;
 
@@ -67,9 +81,8 @@ LRESULT CALLBACK MainWindowCallback(HWND Window, UINT Message, WPARAM WParam, LP
 	{
 		case WM_SIZE:
 		{
-			RECT ClientRect;
-			GetClientRect(Window, &ClientRect);
-			ResizeDIBSection(&Buffer, ClientRect.right - ClientRect.left, ClientRect.bottom - ClientRect.top);
+			WindowDimension Dimension = GetWindowDimention(WindowHandle);
+			ResizeDIBSection(&Buffer, Dimension.Width, Dimension.Height);
 			OutputDebugStringA("WM_SIZE\n");
 		} break;
 
@@ -93,17 +106,15 @@ LRESULT CALLBACK MainWindowCallback(HWND Window, UINT Message, WPARAM WParam, LP
 		case WM_PAINT:
 		{
 			PAINTSTRUCT P;
-			HDC DeviceContext = BeginPaint(Window, &P);
-			RECT ClientRect;
-			GetClientRect(Window, &ClientRect);
-			CopyBufferToWindow(&Buffer, ClientRect, DeviceContext, P.rcPaint.left, P.rcPaint.top, P.rcPaint.right - P.rcPaint.left, P.rcPaint.bottom - P.rcPaint.top);
-			EndPaint(Window, &P);
+			HDC DeviceContext = BeginPaint(WindowHandle, &P);
+			DisplayBufferToWindow(&Buffer, GetWindowDimention(WindowHandle), DeviceContext, P.rcPaint.left, P.rcPaint.top);
+			EndPaint(WindowHandle, &P);
 		} break;
 
 		default:
 		{
 			OutputDebugStringA("Default message received.\n");
-			Result = DefWindowProc(Window, Message, WParam, LParam);
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
 		} break;
 	}
 	return Result;
@@ -151,10 +162,9 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 
 				RenderGradient(&Buffer, XOffset++, YOffset++);
 
-				RECT ClientRect;
-				GetClientRect(WindowHandle, &ClientRect);
+				WindowDimension Dimension = GetWindowDimention(WindowHandle);
 				HDC DeviceContext = GetDC(WindowHandle);
-				CopyBufferToWindow(&Buffer, ClientRect, DeviceContext, ClientRect.left, ClientRect.top, ClientRect.right - ClientRect.left, ClientRect.bottom - ClientRect.top);
+				DisplayBufferToWindow(&Buffer, Dimension, DeviceContext, 0, 0);
 			}
 		}
 	}
