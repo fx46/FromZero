@@ -5,6 +5,32 @@ static BITMAPINFO BitmapInfo;
 static void *BitmapMemory;
 static int BitmapWidth;
 static int BitmapHeight;
+static int BytesPerPixel = 4;
+
+static void RenderGradient(int XOffset, int YOffset)
+{
+	int Pitch = BitmapWidth * BytesPerPixel;
+	UINT8* Row = (UINT8*)BitmapMemory;	//8 bit because when we would do "Row + x", the x will be multiplied by the size of the object (pointer arithmetic)
+	for (int Y = 0; Y < BitmapHeight; ++Y)
+	{
+		UINT8 *Pixel = (UINT8*)Row;
+		for (int X = 0; X < BitmapWidth; ++X)
+		{
+			*Pixel = 0;
+			++Pixel;
+
+			*Pixel = (UINT8)(Y + YOffset);
+			++Pixel;
+
+			*Pixel = (UINT8)(X + XOffset);
+			++Pixel;
+
+			*Pixel = 0;
+			++Pixel;
+		}
+		Row += Pitch;
+	}
+}
 
 static void ResizeDIBSection(int Width, int Height)
 {
@@ -15,38 +41,15 @@ static void ResizeDIBSection(int Width, int Height)
 
 	BitmapWidth = Width;
 	BitmapHeight = Height;
-
 	BitmapInfo.bmiHeader.biSize = sizeof(BitmapInfo.bmiHeader);
 	BitmapInfo.bmiHeader.biWidth = BitmapWidth;
 	BitmapInfo.bmiHeader.biHeight = -BitmapHeight; //negative so the bitmap is a top-down DIB with the origin at the upper left corner.
 	BitmapInfo.bmiHeader.biPlanes = 1;
 	BitmapInfo.bmiHeader.biBitCount = 32;
 	BitmapInfo.bmiHeader.biCompression = BI_RGB;
-
-	int BytesPerPixel = 4;
 	BitmapMemory = VirtualAlloc(0, BytesPerPixel * BitmapWidth * BitmapHeight, MEM_COMMIT, PAGE_READWRITE);
 
-	int Pitch = Width * BytesPerPixel;
-	UINT8* Row = (UINT8*)BitmapMemory;	//8 bit because when we would do "Row + x", the x will be multiplied by the size of the object (pointer arithmetic)
-	for (int Y = 0; Y < BitmapHeight; ++Y)
-	{
-		UINT8 *Pixel = (UINT8*)Row;
-		for (int X = 0; X < BitmapWidth; ++X)
-		{
-			*Pixel = (UINT8)X;
-			++Pixel;
-
-			*Pixel = (UINT8)Y;
-			++Pixel;
-
-			*Pixel = (UINT8)Y * (UINT8)X;
-			++Pixel;
-
-			*Pixel = 0;
-			++Pixel;
-		}
-		Row += Pitch;
-	}
+	RenderGradient(0, 0);
 }
 
 static void UpdateClientWindow(RECT *WindowRect, HDC DeviceContext, int Left, int Top, int Width, int Height)
