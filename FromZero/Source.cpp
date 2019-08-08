@@ -1,20 +1,25 @@
 #include <windows.h>
 
-static bool bRunning = true;
-static BITMAPINFO BitmapInfo;
-static void *BitmapMemory;
-static int BitmapWidth;
-static int BitmapHeight;
-static int BytesPerPixel = 4;
-
-static void RenderGradient(int XOffset, int YOffset)
+struct PixelBuffer
 {
-	int Pitch = BitmapWidth * BytesPerPixel;
-	UINT8* Row = (UINT8*)BitmapMemory;	//8 bit because when we would do "Row + x", the x will be multiplied by the size of the object (pointer arithmetic)
-	for (int Y = 0; Y < BitmapHeight; ++Y)
+	BITMAPINFO BitmapInfo;
+	void *BitmapMemory;
+	int BitmapWidth;
+	int BitmapHeight;
+	int Pitch;
+	int BytesPerPixel;
+};
+
+static bool bRunning = true;
+static PixelBuffer Buffer;
+
+static void RenderGradient(PixelBuffer *Buffer, int XOffset, int YOffset)
+{
+	UINT8* Row = (UINT8*)Buffer->BitmapMemory;	//8 bit because when we would do "Row + x", the x will be multiplied by the size of the object (pointer arithmetic)
+	for (int Y = 0; Y < Buffer->BitmapHeight; ++Y)
 	{
 		UINT32 *Pixel = (UINT32*)Row;
-		for (int X = 0; X < BitmapWidth; ++X)
+		for (int X = 0; X < Buffer->BitmapWidth; ++X)
 		{
 			UINT8 Blue = (Y - YOffset);
 			UINT8 Green = (Y + YOffset);
@@ -22,33 +27,36 @@ static void RenderGradient(int XOffset, int YOffset)
 
 			*Pixel++ = (Red << 16 | Green << 8 | Blue);
 		}
-		Row += Pitch;
+		Row += Buffer->Pitch;
 	}
 }
 
-static void ResizeDIBSection(int Width, int Height)
+static void ResizeDIBSection(PixelBuffer *Buffer, int Width, int Height)
 {
-	if (BitmapMemory)
+	if (Buffer->BitmapMemory)
 	{
-		VirtualFree(BitmapMemory, 0, MEM_RELEASE);
+		VirtualFree(Buffer->BitmapMemory, 0, MEM_RELEASE);
 	}
 
-	BitmapWidth = Width;
-	BitmapHeight = Height;
-	BitmapInfo.bmiHeader.biSize = sizeof(BitmapInfo.bmiHeader);
-	BitmapInfo.bmiHeader.biWidth = BitmapWidth;
-	BitmapInfo.bmiHeader.biHeight = -BitmapHeight; //negative so the bitmap is a top-down DIB with the origin at the upper left corner.
-	BitmapInfo.bmiHeader.biPlanes = 1;
-	BitmapInfo.bmiHeader.biBitCount = 32;
-	BitmapInfo.bmiHeader.biCompression = BI_RGB;
-	BitmapMemory = VirtualAlloc(0, BytesPerPixel * BitmapWidth * BitmapHeight, MEM_COMMIT, PAGE_READWRITE);
+	Buffer->BytesPerPixel = 4;
+	Buffer->BitmapWidth = Width;
+	Buffer->BitmapHeight = Height;
+	Buffer->BitmapInfo.bmiHeader.biSize = sizeof(Buffer->BitmapInfo.bmiHeader);
+	Buffer->BitmapInfo.bmiHeader.biWidth = Buffer->BitmapWidth;
+	Buffer->BitmapInfo.bmiHeader.biHeight = -Buffer->BitmapHeight; //negative so the bitmap is a top-down DIB with the origin at the upper left corner.
+	Buffer->BitmapInfo.bmiHeader.biPlanes = 1;
+	Buffer->BitmapInfo.bmiHeader.biBitCount = 32;
+	Buffer->BitmapInfo.bmiHeader.biCompression = BI_RGB;
+	Buffer->BitmapMemory = VirtualAlloc(0, Buffer->BytesPerPixel * Buffer->BitmapWidth * Buffer->BitmapHeight, MEM_COMMIT, PAGE_READWRITE);
+
+	Buffer->Pitch = Buffer->BitmapWidth * Buffer->BytesPerPixel;
 }
 
-static void UpdateClientWindow(RECT *WindowRect, HDC DeviceContext, int Left, int Top, int Width, int Height)
+static void CopyBufferToWindow(PixelBuffer *Buffer, RECT WindowRect, HDC DeviceContext, int Left, int Top, int Width, int Height)
 {
-	int WindowWidth = WindowRect->right - WindowRect->left;
-	int WindowHeight = WindowRect->bottom - WindowRect->top;
-	StretchDIBits(DeviceContext, 0, 0, BitmapWidth, BitmapHeight, 0, 0, WindowWidth, WindowHeight, BitmapMemory, &BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+	int WindowWidth = WindowRect.right - WindowRect.left;
+	int WindowHeight = WindowRect.bottom - WindowRect.top;
+	StretchDIBits(DeviceContext, 0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, 0, 0, WindowWidth, WindowHeight, Buffer->BitmapMemory, &Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 }
 
 LRESULT CALLBACK MainWindowCallback(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam)
@@ -61,7 +69,7 @@ LRESULT CALLBACK MainWindowCallback(HWND Window, UINT Message, WPARAM WParam, LP
 		{
 			RECT ClientRect;
 			GetClientRect(Window, &ClientRect);
-			ResizeDIBSection(ClientRect.right - ClientRect.left, ClientRect.bottom - ClientRect.top);
+			ResizeDIBSection(&Buffer, ClientRect.right - ClientRect.left, ClientRect.bottom - ClientRect.top);
 			OutputDebugStringA("WM_SIZE\n");
 		} break;
 
@@ -88,8 +96,7 @@ LRESULT CALLBACK MainWindowCallback(HWND Window, UINT Message, WPARAM WParam, LP
 			HDC DeviceContext = BeginPaint(Window, &P);
 			RECT ClientRect;
 			GetClientRect(Window, &ClientRect);
-
-			UpdateClientWindow(&ClientRect, DeviceContext, P.rcPaint.left, P.rcPaint.top, P.rcPaint.right - P.rcPaint.left, P.rcPaint.bottom - P.rcPaint.top);
+			CopyBufferToWindow(&Buffer, ClientRect, DeviceContext, P.rcPaint.left, P.rcPaint.top, P.rcPaint.right - P.rcPaint.left, P.rcPaint.bottom - P.rcPaint.top);
 			EndPaint(Window, &P);
 		} break;
 
@@ -130,24 +137,24 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 
 		if (WindowHandle)
 		{
-			MSG Message;
 			int XOffset = 0, YOffset = 0;
 
 			while (bRunning)
 			{
+				MSG Message;
+
 				while (PeekMessage(&Message, 0, 0, 0, PM_REMOVE))
 				{
 					TranslateMessage(&Message);
 					DispatchMessage(&Message);
 				}
 
-				RenderGradient(XOffset++, YOffset++);
+				RenderGradient(&Buffer, XOffset++, YOffset++);
 
 				RECT ClientRect;
 				GetClientRect(WindowHandle, &ClientRect);
 				HDC DeviceContext = GetDC(WindowHandle);
-
-				UpdateClientWindow(&ClientRect, DeviceContext, ClientRect.left, ClientRect.top, ClientRect.right - ClientRect.left, ClientRect.bottom - ClientRect.top);
+				CopyBufferToWindow(&Buffer, ClientRect, DeviceContext, ClientRect.left, ClientRect.top, ClientRect.right - ClientRect.left, ClientRect.bottom - ClientRect.top);
 			}
 		}
 	}
