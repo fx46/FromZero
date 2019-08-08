@@ -13,20 +13,14 @@ static void RenderGradient(int XOffset, int YOffset)
 	UINT8* Row = (UINT8*)BitmapMemory;	//8 bit because when we would do "Row + x", the x will be multiplied by the size of the object (pointer arithmetic)
 	for (int Y = 0; Y < BitmapHeight; ++Y)
 	{
-		UINT8 *Pixel = (UINT8*)Row;
+		UINT32 *Pixel = (UINT32*)Row;
 		for (int X = 0; X < BitmapWidth; ++X)
 		{
-			*Pixel = 0;
-			++Pixel;
+			UINT8 Blue = (Y - YOffset);
+			UINT8 Green = (Y + YOffset);
+			UINT8 Red = (Y + 2 * YOffset);
 
-			*Pixel = (UINT8)(Y + YOffset);
-			++Pixel;
-
-			*Pixel = (UINT8)(X + XOffset);
-			++Pixel;
-
-			*Pixel = 0;
-			++Pixel;
+			*Pixel++ = (Red << 16 | Green << 8 | Blue);
 		}
 		Row += Pitch;
 	}
