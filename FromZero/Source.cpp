@@ -70,7 +70,7 @@ static void ResizeDIBSection(PixelBuffer *Buffer, int Width, int Height)
 
 static void DisplayBufferToWindow(PixelBuffer *Buffer, WindowDimension Dimension, HDC DeviceContext, int Left, int Top)
 {
-	StretchDIBits(DeviceContext, 0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, 0, 0, Dimension.Width, Dimension.Height, Buffer->BitmapMemory, &Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+	StretchDIBits(DeviceContext, 0, 0, Dimension.Width, Dimension.Height, 0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, Buffer->BitmapMemory, &Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 }
 
 LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPARAM WParam, LPARAM LParam)
@@ -81,8 +81,6 @@ LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPARAM WPar
 	{
 		case WM_SIZE:
 		{
-			WindowDimension Dimension = GetWindowDimention(WindowHandle);
-			ResizeDIBSection(&Buffer, Dimension.Width, Dimension.Height);
 			OutputDebugStringA("WM_SIZE\n");
 		} break;
 
@@ -123,28 +121,15 @@ LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPARAM WPar
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, int ShowCmd)
 {
 	WNDCLASS WindowClass = {};
-	WindowClass.style = CS_OWNDC|CS_HREDRAW|CS_VREDRAW;
+	ResizeDIBSection(&Buffer, 1280, 720);
+	WindowClass.style = CS_HREDRAW|CS_VREDRAW;
 	WindowClass.lpfnWndProc = MainWindowCallback;
 	WindowClass.hInstance = Instance;
 	WindowClass.lpszClassName = "FromZeroWindowClass"; 
 
 	if (RegisterClass(&WindowClass))
 	{
-		HWND WindowHandle = CreateWindowEx
-		(
-			0,
-			WindowClass.lpszClassName, 
-			"FromZero", 
-			WS_OVERLAPPEDWINDOW | WS_VISIBLE, 
-			CW_USEDEFAULT, 
-			CW_USEDEFAULT, 
-			CW_USEDEFAULT, 
-			CW_USEDEFAULT, 
-			0, 
-			0, 
-			Instance, 
-			0
-		);
+		HWND WindowHandle = CreateWindowEx(0, WindowClass.lpszClassName, "FromZero", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, Instance, 0);
 
 		if (WindowHandle)
 		{
