@@ -68,7 +68,7 @@ static void ResizeDIBSection(PixelBuffer *Buffer, int Width, int Height)
 	Buffer->Pitch = Buffer->BitmapWidth * Buffer->BytesPerPixel;
 }
 
-static void DisplayBufferToWindow(PixelBuffer *Buffer, WindowDimension Dimension, HDC DeviceContext, int Left, int Top)
+static void DisplayBufferToWindow(PixelBuffer *Buffer, WindowDimension Dimension, HDC DeviceContext)
 {
 	StretchDIBits(DeviceContext, 0, 0, Dimension.Width, Dimension.Height, 0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, Buffer->BitmapMemory, &Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 }
@@ -105,7 +105,7 @@ LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPARAM WPar
 		{
 			PAINTSTRUCT P;
 			HDC DeviceContext = BeginPaint(WindowHandle, &P);
-			DisplayBufferToWindow(&Buffer, GetWindowDimention(WindowHandle), DeviceContext, P.rcPaint.left, P.rcPaint.top);
+			DisplayBufferToWindow(&Buffer, GetWindowDimention(WindowHandle), DeviceContext);
 			EndPaint(WindowHandle, &P);
 		} break;
 
@@ -149,7 +149,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 
 				WindowDimension Dimension = GetWindowDimention(WindowHandle);
 				HDC DeviceContext = GetDC(WindowHandle);
-				DisplayBufferToWindow(&Buffer, Dimension, DeviceContext, 0, 0);
+				DisplayBufferToWindow(&Buffer, Dimension, DeviceContext);
 			}
 		}
 	}
