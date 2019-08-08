@@ -48,8 +48,6 @@ static void ResizeDIBSection(int Width, int Height)
 	BitmapInfo.bmiHeader.biBitCount = 32;
 	BitmapInfo.bmiHeader.biCompression = BI_RGB;
 	BitmapMemory = VirtualAlloc(0, BytesPerPixel * BitmapWidth * BitmapHeight, MEM_COMMIT, PAGE_READWRITE);
-
-	RenderGradient(0, 0);
 }
 
 static void UpdateClientWindow(RECT *WindowRect, HDC DeviceContext, int Left, int Top, int Width, int Height)
@@ -139,18 +137,23 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 		if (WindowHandle)
 		{
 			MSG Message;
+			int XOffset = 0, YOffset = 0;
+
 			while (bRunning)
 			{
-				BOOL MessageResult = GetMessage(&Message, 0, 0, 0);
-				if (MessageResult > 0)
+				while (PeekMessage(&Message, 0, 0, 0, PM_REMOVE))
 				{
 					TranslateMessage(&Message);
 					DispatchMessage(&Message);
 				}
-				else
-				{
-					break;
-				}
+
+				RenderGradient(XOffset++, YOffset++);
+
+				RECT ClientRect;
+				GetClientRect(WindowHandle, &ClientRect);
+				HDC DeviceContext = GetDC(WindowHandle);
+
+				UpdateClientWindow(&ClientRect, DeviceContext, ClientRect.left, ClientRect.top, ClientRect.right - ClientRect.left, ClientRect.bottom - ClientRect.top);
 			}
 		}
 	}
