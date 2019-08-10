@@ -166,6 +166,12 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 			{
 				OutputDebugStringA("VK_SPACE Pressed!\n");
 			}
+
+			bool AltKeyWasDown = LParam & (1 << 29);
+			if ((VKCode == VK_F4) && AltKeyWasDown)
+			{
+				bRunning = false;
+			}
 		} break;
 
 		default:
