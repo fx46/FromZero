@@ -1,5 +1,4 @@
 #include <windows.h>
-#include <xinput.h>
 
 struct PixelBuffer
 {
@@ -19,30 +18,6 @@ struct WindowDimension
 	int Width;
 	int Height;
 };
-
-#define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE *pState)
-#define X_INPUT_SET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_VIBRATION *pVibration)
-typedef X_INPUT_GET_STATE(x_input_get_state);
-typedef X_INPUT_SET_STATE(x_input_set_state);
-
-X_INPUT_GET_STATE(XInputGetStateStub) { return 0; }
-X_INPUT_SET_STATE(XInputSetStateStub) { return 0; }
-
-static x_input_get_state *XInputGetState_ = XInputGetStateStub;
-static x_input_set_state *XInputSetState_ = XInputSetStateStub;
-
-#define XInputSetState XInputSetState_
-#define XInputGetState XInputGetState_
-
-static void LoadXInput()
-{
-	HMODULE XInputLibrary = LoadLibraryA("xinput1_3.dll");
-	if (XInputLibrary)
-	{
-		XInputGetState = (x_input_get_state *)(GetProcAddress(XInputLibrary, "XInputGetState"));
-		XInputSetState = (x_input_set_state *)(GetProcAddress(XInputLibrary, "XInputSetState"));
-	}
-}
 
 static WindowDimension GetWindowDimention(HWND WindowHandle)
 {
@@ -204,8 +179,6 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, int ShowCmd)
 {
-	LoadXInput();
-
 	WNDCLASSA WindowClass = {};
 	ResizeDIBSection(&Buffer, 1280, 720);
 	WindowClass.style = CS_HREDRAW|CS_VREDRAW;
@@ -229,29 +202,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 				{
 					TranslateMessage(&Message);
 					DispatchMessage(&Message);
-				}
-
-				for (DWORD ControllerIndex = 0; ControllerIndex < XUSER_MAX_COUNT; ++ControllerIndex)
-				{
-					XINPUT_STATE ControllerState;
-					if (XInputGetState(ControllerIndex, &ControllerState) == ERROR_SUCCESS)
-					{
-						XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
-						bool Up				= (Pad->wButtons && XINPUT_GAMEPAD_DPAD_UP);
-						bool Down			= (Pad->wButtons && XINPUT_GAMEPAD_DPAD_DOWN);
-						bool Left			= (Pad->wButtons && XINPUT_GAMEPAD_DPAD_LEFT);
-						bool Right			= (Pad->wButtons && XINPUT_GAMEPAD_DPAD_RIGHT);
-						bool Start			= (Pad->wButtons && XINPUT_GAMEPAD_START);
-						bool Back			= (Pad->wButtons && XINPUT_GAMEPAD_BACK);
-						bool LeftShoulder	= (Pad->wButtons && XINPUT_GAMEPAD_LEFT_SHOULDER);
-						bool RightShoulder	= (Pad->wButtons && XINPUT_GAMEPAD_RIGHT_SHOULDER);
-						bool AButton		= (Pad->wButtons && XINPUT_GAMEPAD_A);
-						bool BButton		= (Pad->wButtons && XINPUT_GAMEPAD_B);
-						bool XButton		= (Pad->wButtons && XINPUT_GAMEPAD_X);
-						bool YButton		= (Pad->wButtons && XINPUT_GAMEPAD_Y);
-						INT16 StickX		= Pad->sThumbLX;
-						INT16 StickY		= Pad->sThumbLY;
-					}
 				}
 
 				RenderGradient(&Buffer, XOffset++, YOffset++);
