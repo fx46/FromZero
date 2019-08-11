@@ -13,6 +13,7 @@ struct PixelBuffer
 
 static bool bRunning = true;
 static PixelBuffer Buffer;
+static LPDIRECTSOUNDBUFFER SecondaryBuffer;
 
 struct WindowDimension
 {
@@ -51,8 +52,9 @@ static void InitDSound(HWND WindowHandle, UINT32 SamplesPerSecond, UINT32 Buffer
 				{
 					if (SUCCEEDED(PrimaryBuffer->SetFormat(&WaveFormat)))
 					{
-						OutputDebugStringA("Primary buffer format set.\n");
 						//This is not actually a buffer, it is used to get a handle on the sound card to set the correct format. Maybe not needed?
+						OutputDebugStringA("Primary buffer format set.\n");
+						
 					}
 				}
 			}
@@ -62,7 +64,6 @@ static void InitDSound(HWND WindowHandle, UINT32 SamplesPerSecond, UINT32 Buffer
 			BufferDescription.dwFlags = 0;
 			BufferDescription.dwBufferBytes = BufferSize;
 			BufferDescription.lpwfxFormat = &WaveFormat;
-			LPDIRECTSOUNDBUFFER SecondaryBuffer;
 			if (SUCCEEDED(DirectSound->CreateSoundBuffer(&BufferDescription, &SecondaryBuffer, 0)))
 			{
 				OutputDebugStringA("Secondary buffer created.\n");
@@ -250,9 +251,16 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 
 		if (WindowHandle)
 		{
-			int XOffset = 0, YOffset = 0;
+			UINT32 RunningSampleIndex = 0;
+			INT16 Volume = 500;
+			int ToneHz = 256;
+			int SamplesPerSecond = 48000;
+			int SqareWavePeriod = SamplesPerSecond / ToneHz;
+			int BytesPerSample = sizeof(INT16) * 2;
+			int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;	//buffer size for 1 second
 
-			InitDSound(WindowHandle, 48000, 48000 * sizeof(INT16) * 2);
+			InitDSound(WindowHandle, SamplesPerSecond, SecondaryBufferSize);
+			bool SoundIsPlaying = false;
 
 			while (bRunning)
 			{
@@ -264,7 +272,64 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 					DispatchMessage(&Message);
 				}
 
+				static int XOffset = 0, YOffset = 0;
 				RenderGradient(&Buffer, XOffset++, YOffset++);
+
+				DWORD PlayCursor;
+				DWORD WriteCursor;
+				if (SUCCEEDED(SecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor)))
+				{
+					DWORD ByteToLock = RunningSampleIndex * BytesPerSample % SecondaryBufferSize;
+					DWORD BytesToWrite;
+					
+					if (ByteToLock == PlayCursor)
+					{
+						BytesToWrite = SecondaryBufferSize;
+					}
+					else if (ByteToLock > PlayCursor)
+					{
+						BytesToWrite = SecondaryBufferSize - ByteToLock;
+						BytesToWrite += PlayCursor;
+					}
+					else
+					{
+						BytesToWrite = PlayCursor - ByteToLock;
+					}
+
+					void *Region1;
+					DWORD Region1size;
+					void *Region2;
+					DWORD Region2size;
+
+					if (SUCCEEDED(SecondaryBuffer->Lock(ByteToLock, BytesToWrite, &Region1, &Region1size, &Region2, &Region2size, 0)))
+					{
+						DWORD Region1SampleCount = Region1size / BytesPerSample;
+						INT16 *SampleOut = static_cast<INT16*>(Region1);
+						for (DWORD SampleIndex = 0; SampleIndex < Region1SampleCount; SampleIndex++)
+						{
+							INT16 SampleValue = (RunningSampleIndex++ / (SqareWavePeriod / 2)) % 2 ? Volume : -Volume;
+							*SampleOut++ = SampleValue;
+							*SampleOut++ = SampleValue;
+						}
+
+						DWORD Region2SampleCount = Region2size / BytesPerSample;
+						SampleOut = static_cast<INT16*>(Region2);
+						for (DWORD SampleIndex = 0; SampleIndex < Region2SampleCount; SampleIndex++)
+						{
+							INT16 SampleValue = (RunningSampleIndex++ / (SqareWavePeriod / 2)) % 2 ? Volume : -Volume;
+							*SampleOut++ = SampleValue;
+							*SampleOut++ = SampleValue;
+						}
+
+						SecondaryBuffer->Unlock(Region1, Region1size, Region2, Region2size);
+					}
+				}
+
+				if (!SoundIsPlaying)
+				{
+					SoundIsPlaying = true;
+					SecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
+				}
 
 				WindowDimension Dimension = GetWindowDimention(WindowHandle);
 				HDC DeviceContext = GetDC(WindowHandle);
