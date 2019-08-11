@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <dsound.h>
 
 struct PixelBuffer
 {
@@ -18,6 +19,57 @@ struct WindowDimension
 	int Width;
 	int Height;
 };
+
+typedef HRESULT WINAPI direct_sound_create(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter);	//declaring function signature as a type
+
+static void InitDSound(HWND WindowHandle, UINT32 SamplesPerSecond, UINT32 BufferSize)
+{
+	if (HMODULE DSoundLibrary = LoadLibraryA("dsound.dll"))
+	{
+		direct_sound_create *DirectSoundCreate = (direct_sound_create *)GetProcAddress(DSoundLibrary, "DirectSoundCreate");
+
+		LPDIRECTSOUND DirectSound;
+		if (DirectSoundCreate && SUCCEEDED(DirectSoundCreate(0, &DirectSound, 0)))
+		{
+			WAVEFORMATEX WaveFormat = {};
+			WaveFormat.wFormatTag = WAVE_FORMAT_PCM;
+			WaveFormat.nChannels = 2;
+			WaveFormat.nSamplesPerSec = SamplesPerSecond;
+			WaveFormat.wBitsPerSample = 16;
+			WaveFormat.nBlockAlign = (WaveFormat.nChannels * WaveFormat.wBitsPerSample) / 8;
+			WaveFormat.nAvgBytesPerSec = WaveFormat.nSamplesPerSec  * WaveFormat.nBlockAlign;
+			WaveFormat.cbSize = 0;
+
+			if (SUCCEEDED(DirectSound->SetCooperativeLevel(WindowHandle, DSSCL_PRIORITY)))
+			{
+				DSBUFFERDESC BufferDescription = {};
+				BufferDescription.dwSize = sizeof(BufferDescription);
+				BufferDescription.dwFlags = DSBCAPS_PRIMARYBUFFER;
+
+				LPDIRECTSOUNDBUFFER PrimaryBuffer;
+				if (SUCCEEDED(DirectSound->CreateSoundBuffer(&BufferDescription, &PrimaryBuffer, 0)))
+				{
+					if (SUCCEEDED(PrimaryBuffer->SetFormat(&WaveFormat)))
+					{
+						OutputDebugStringA("Primary buffer format set.\n");
+						//This is not actually a buffer, it is used to get a handle on the sound card to set the correct format. Maybe not needed?
+					}
+				}
+			}
+
+			DSBUFFERDESC BufferDescription = {};
+			BufferDescription.dwSize = sizeof(BufferDescription);
+			BufferDescription.dwFlags = 0;
+			BufferDescription.dwBufferBytes = BufferSize;
+			BufferDescription.lpwfxFormat = &WaveFormat;
+			LPDIRECTSOUNDBUFFER SecondaryBuffer;
+			if (SUCCEEDED(DirectSound->CreateSoundBuffer(&BufferDescription, &SecondaryBuffer, 0)))
+			{
+				OutputDebugStringA("Secondary buffer created.\n");
+			}
+		}
+	}
+}
 
 static WindowDimension GetWindowDimention(HWND WindowHandle)
 {
@@ -63,7 +115,7 @@ static void ResizeDIBSection(PixelBuffer *Buffer, int Width, int Height)
 	Buffer->BitmapInfo.bmiHeader.biPlanes = 1;
 	Buffer->BitmapInfo.bmiHeader.biBitCount = 32;
 	Buffer->BitmapInfo.bmiHeader.biCompression = BI_RGB;
-	Buffer->BitmapMemory = VirtualAlloc(0, Buffer->BytesPerPixel * Buffer->BitmapWidth * Buffer->BitmapHeight, MEM_COMMIT, PAGE_READWRITE);
+	Buffer->BitmapMemory = VirtualAlloc(0, Buffer->BytesPerPixel * Buffer->BitmapWidth * Buffer->BitmapHeight, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 
 	Buffer->Pitch = Buffer->BitmapWidth * Buffer->BytesPerPixel;
 }
@@ -199,6 +251,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 		if (WindowHandle)
 		{
 			int XOffset = 0, YOffset = 0;
+
+			InitDSound(WindowHandle, 48000, 48000 * sizeof(INT16) * 2);
 
 			while (bRunning)
 			{
