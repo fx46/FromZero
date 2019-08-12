@@ -12,9 +12,22 @@ struct PixelBuffer
 	int BytesPerPixel = 4;
 };
 
+struct SoundOutput
+{
+	UINT32 RunningSampleIndex = 0;
+	INT16 Volume = 2000;
+	float TSine;
+	int ToneHz = 256;
+	int SamplesPerSecond = 48000;
+	int WavePeriod = SamplesPerSecond / ToneHz;
+	int BytesPerSample = sizeof(INT16) * 2;
+	int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;	//buffer size for 1 second
+};
+
 static bool bRunning = true;
 static PixelBuffer Buffer;
 static LPDIRECTSOUNDBUFFER SecondaryBuffer;
+static SoundOutput Sound;
 
 struct WindowDimension
 {
@@ -179,6 +192,10 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 			else if (VKCode == 'A')
 			{
 				OutputDebugStringA("A Pressed!\n");
+
+				//test sound
+				Sound.ToneHz *= 1.1f;
+				Sound.WavePeriod = Sound.SamplesPerSecond / Sound.ToneHz;
 			}
 			else if (VKCode == 'S')
 			{
@@ -237,17 +254,6 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 	return Result;
 }
 
-struct SoundOutput
-{
-	UINT32 RunningSampleIndex = 0;
-	INT16 Volume = 2000;
-	int ToneHz = 256;
-	int SamplesPerSecond = 48000;
-	int WavePeriod = SamplesPerSecond / ToneHz;
-	int BytesPerSample = sizeof(INT16) * 2;
-	int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;	//buffer size for 1 second
-};
-
 static void FillSoundBuffer(SoundOutput *Sound, DWORD BytesToLock, DWORD BytesToWrite)
 {
 	void *Region1;
@@ -261,22 +267,24 @@ static void FillSoundBuffer(SoundOutput *Sound, DWORD BytesToLock, DWORD BytesTo
 		INT16 *SampleOut = static_cast<INT16*>(Region1);
 		for (DWORD SampleIndex = 0; SampleIndex < Region1SampleCount; SampleIndex++)
 		{
-			float t = 2.0f * 3.14159265359f * static_cast<float>(Sound->RunningSampleIndex++) / static_cast<float>(Sound->WavePeriod);
-			float SineValue = sinf(t);
+			float SineValue = sinf(Sound->TSine);
 			INT16 SampleValue = (INT16)(SineValue * Sound->Volume);
 			*SampleOut++ = SampleValue;
 			*SampleOut++ = SampleValue;
+			Sound->TSine += 2.0f * 3.14159265359f / static_cast<float>(Sound->WavePeriod);
+			Sound->RunningSampleIndex++;
 		}
 
 		DWORD Region2SampleCount = Region2size / Sound->BytesPerSample;
 		SampleOut = static_cast<INT16*>(Region2);
 		for (DWORD SampleIndex = 0; SampleIndex < Region2SampleCount; SampleIndex++)
 		{
-			float t = 2.0f * 3.14159265359f * static_cast<float>(Sound->RunningSampleIndex++) / static_cast<float>(Sound->WavePeriod);
-			float SineValue = sinf(t);
+			float SineValue = sinf(Sound->TSine);
 			INT16 SampleValue = (INT16)(SineValue * Sound->Volume);
 			*SampleOut++ = SampleValue;
 			*SampleOut++ = SampleValue;
+			Sound->TSine += 2.0f * 3.14159265359f / static_cast<float>(Sound->WavePeriod);
+			Sound->RunningSampleIndex++;
 		}
 
 		SecondaryBuffer->Unlock(Region1, Region1size, Region2, Region2size);
@@ -298,7 +306,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 
 		if (WindowHandle)
 		{
-			SoundOutput Sound;
 			InitDSound(WindowHandle, Sound.SamplesPerSecond, Sound.SecondaryBufferSize);
 			FillSoundBuffer(&Sound, 0, Sound.SecondaryBufferSize);
 			SecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
