@@ -22,6 +22,7 @@ struct SoundOutput
 	int WavePeriod = SamplesPerSecond / ToneHz;
 	int BytesPerSample = sizeof(INT16) * 2;
 	int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;	//buffer size for 1 second
+	int LatencySampleCount = SamplesPerSecond / 15;
 };
 
 static bool bRunning = true;
@@ -193,9 +194,12 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 			{
 				OutputDebugStringA("A Pressed!\n");
 
-				//test sound
-				Sound.ToneHz *= 1.1f;
-				Sound.WavePeriod = Sound.SamplesPerSecond / Sound.ToneHz;
+				if (IsDown)
+				{
+					//test sound
+					Sound.ToneHz *= 1.1f;
+					Sound.WavePeriod = Sound.SamplesPerSecond / Sound.ToneHz;
+				}
 			}
 			else if (VKCode == 'S')
 			{
@@ -307,7 +311,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 		if (WindowHandle)
 		{
 			InitDSound(WindowHandle, Sound.SamplesPerSecond, Sound.SecondaryBufferSize);
-			FillSoundBuffer(&Sound, 0, Sound.SecondaryBufferSize);
+			FillSoundBuffer(&Sound, 0, Sound.LatencySampleCount * Sound.BytesPerSample);
 			SecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
 			while (bRunning)
@@ -328,16 +332,17 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 				if (SUCCEEDED(SecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor)))
 				{
 					DWORD BytesToLock = (Sound.RunningSampleIndex * Sound.BytesPerSample) % Sound.SecondaryBufferSize;
+					DWORD TargetCursor = (PlayCursor + Sound.BytesPerSample * Sound.LatencySampleCount) % Sound.SecondaryBufferSize;
 					DWORD BytesToWrite = 0;
 					
-					if (BytesToLock > PlayCursor)
+					if (BytesToLock > TargetCursor)
 					{
 						BytesToWrite = Sound.SecondaryBufferSize - BytesToLock;
-						BytesToWrite += PlayCursor;
+						BytesToWrite += TargetCursor;
 					}
 					else
 					{
-						BytesToWrite = PlayCursor - BytesToLock;
+						BytesToWrite = TargetCursor - BytesToLock;
 					}
 
 					FillSoundBuffer(&Sound, BytesToLock, BytesToWrite);
