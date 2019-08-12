@@ -197,7 +197,7 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 				if (IsDown)
 				{
 					//test sound
-					Sound.ToneHz *= 1.1f;
+					Sound.ToneHz *= 2;
 					Sound.WavePeriod = Sound.SamplesPerSecond / Sound.ToneHz;
 				}
 			}
@@ -297,12 +297,17 @@ static void FillSoundBuffer(SoundOutput *Sound, DWORD BytesToLock, DWORD BytesTo
 
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, int ShowCmd)
 {
+	LARGE_INTEGER PerformanceCountFrequencyResult;
+	QueryPerformanceFrequency(&PerformanceCountFrequencyResult);
+	INT64 PercormanceCountFrequency = PerformanceCountFrequencyResult.QuadPart;
+
 	WNDCLASSA WindowClass = {};
 	ResizeDIBSection(&Buffer, 1280, 720);
 	WindowClass.style = CS_HREDRAW|CS_VREDRAW;
 	WindowClass.lpfnWndProc = MainWindowCallback;
 	WindowClass.hInstance = Instance;
 	WindowClass.lpszClassName = "FromZeroWindowClass"; 
+
 
 	if (RegisterClass(&WindowClass))
 	{
@@ -313,6 +318,9 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 			InitDSound(WindowHandle, Sound.SamplesPerSecond, Sound.SecondaryBufferSize);
 			FillSoundBuffer(&Sound, 0, Sound.LatencySampleCount * Sound.BytesPerSample);
 			SecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
+
+			LARGE_INTEGER LastCounter;
+			QueryPerformanceCounter(&LastCounter);
 
 			while (bRunning)
 			{
@@ -351,6 +359,15 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 				WindowDimension Dimension = GetWindowDimention(WindowHandle);
 				HDC DeviceContext = GetDC(WindowHandle);
 				DisplayBufferToWindow(&Buffer, Dimension, DeviceContext);
+
+				LARGE_INTEGER EndCounter;
+				QueryPerformanceCounter(&EndCounter);
+				INT64 CounterElaped = EndCounter.QuadPart - LastCounter.QuadPart;
+				char CBuffer[256];
+				wsprintf(CBuffer, "%d FPS\n", PercormanceCountFrequency / CounterElaped);
+				OutputDebugStringA(CBuffer);
+
+				LastCounter = EndCounter;
 			}
 		}
 	}
