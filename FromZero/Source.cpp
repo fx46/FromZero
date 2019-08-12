@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <dsound.h>
+#include <math.h>
 
 struct PixelBuffer
 {
@@ -236,6 +237,52 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 	return Result;
 }
 
+struct SoundOutput
+{
+	UINT32 RunningSampleIndex = 0;
+	INT16 Volume = 2000;
+	int ToneHz = 256;
+	int SamplesPerSecond = 48000;
+	int WavePeriod = SamplesPerSecond / ToneHz;
+	int BytesPerSample = sizeof(INT16) * 2;
+	int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;	//buffer size for 1 second
+};
+
+static void FillSoundBuffer(SoundOutput *Sound, DWORD BytesToLock, DWORD BytesToWrite)
+{
+	void *Region1;
+	DWORD Region1size;
+	void *Region2;
+	DWORD Region2size;
+
+	if (SUCCEEDED(SecondaryBuffer->Lock(BytesToLock, BytesToWrite, &Region1, &Region1size, &Region2, &Region2size, 0)))
+	{
+		DWORD Region1SampleCount = Region1size / Sound->BytesPerSample;
+		INT16 *SampleOut = static_cast<INT16*>(Region1);
+		for (DWORD SampleIndex = 0; SampleIndex < Region1SampleCount; SampleIndex++)
+		{
+			float t = 2.0f * 3.14159265359f * static_cast<float>(Sound->RunningSampleIndex++) / static_cast<float>(Sound->WavePeriod);
+			float SineValue = sinf(t);
+			INT16 SampleValue = (INT16)(SineValue * Sound->Volume);
+			*SampleOut++ = SampleValue;
+			*SampleOut++ = SampleValue;
+		}
+
+		DWORD Region2SampleCount = Region2size / Sound->BytesPerSample;
+		SampleOut = static_cast<INT16*>(Region2);
+		for (DWORD SampleIndex = 0; SampleIndex < Region2SampleCount; SampleIndex++)
+		{
+			float t = 2.0f * 3.14159265359f * static_cast<float>(Sound->RunningSampleIndex++) / static_cast<float>(Sound->WavePeriod);
+			float SineValue = sinf(t);
+			INT16 SampleValue = (INT16)(SineValue * Sound->Volume);
+			*SampleOut++ = SampleValue;
+			*SampleOut++ = SampleValue;
+		}
+
+		SecondaryBuffer->Unlock(Region1, Region1size, Region2, Region2size);
+	}
+}
+
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, int ShowCmd)
 {
 	WNDCLASSA WindowClass = {};
@@ -251,16 +298,10 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 
 		if (WindowHandle)
 		{
-			UINT32 RunningSampleIndex = 0;
-			INT16 Volume = 500;
-			int ToneHz = 256;
-			int SamplesPerSecond = 48000;
-			int SqareWavePeriod = SamplesPerSecond / ToneHz;
-			int BytesPerSample = sizeof(INT16) * 2;
-			int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;	//buffer size for 1 second
-
-			InitDSound(WindowHandle, SamplesPerSecond, SecondaryBufferSize);
-			bool SoundIsPlaying = false;
+			SoundOutput Sound;
+			InitDSound(WindowHandle, Sound.SamplesPerSecond, Sound.SecondaryBufferSize);
+			FillSoundBuffer(&Sound, 0, Sound.SecondaryBufferSize);
+			SecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
 			while (bRunning)
 			{
@@ -279,56 +320,20 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 				DWORD WriteCursor;
 				if (SUCCEEDED(SecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor)))
 				{
-					DWORD ByteToLock = RunningSampleIndex * BytesPerSample % SecondaryBufferSize;
-					DWORD BytesToWrite;
+					DWORD BytesToLock = (Sound.RunningSampleIndex * Sound.BytesPerSample) % Sound.SecondaryBufferSize;
+					DWORD BytesToWrite = 0;
 					
-					if (ByteToLock == PlayCursor)
+					if (BytesToLock > PlayCursor)
 					{
-						BytesToWrite = SecondaryBufferSize;
-					}
-					else if (ByteToLock > PlayCursor)
-					{
-						BytesToWrite = SecondaryBufferSize - ByteToLock;
+						BytesToWrite = Sound.SecondaryBufferSize - BytesToLock;
 						BytesToWrite += PlayCursor;
 					}
 					else
 					{
-						BytesToWrite = PlayCursor - ByteToLock;
+						BytesToWrite = PlayCursor - BytesToLock;
 					}
 
-					void *Region1;
-					DWORD Region1size;
-					void *Region2;
-					DWORD Region2size;
-
-					if (SUCCEEDED(SecondaryBuffer->Lock(ByteToLock, BytesToWrite, &Region1, &Region1size, &Region2, &Region2size, 0)))
-					{
-						DWORD Region1SampleCount = Region1size / BytesPerSample;
-						INT16 *SampleOut = static_cast<INT16*>(Region1);
-						for (DWORD SampleIndex = 0; SampleIndex < Region1SampleCount; SampleIndex++)
-						{
-							INT16 SampleValue = (RunningSampleIndex++ / (SqareWavePeriod / 2)) % 2 ? Volume : -Volume;
-							*SampleOut++ = SampleValue;
-							*SampleOut++ = SampleValue;
-						}
-
-						DWORD Region2SampleCount = Region2size / BytesPerSample;
-						SampleOut = static_cast<INT16*>(Region2);
-						for (DWORD SampleIndex = 0; SampleIndex < Region2SampleCount; SampleIndex++)
-						{
-							INT16 SampleValue = (RunningSampleIndex++ / (SqareWavePeriod / 2)) % 2 ? Volume : -Volume;
-							*SampleOut++ = SampleValue;
-							*SampleOut++ = SampleValue;
-						}
-
-						SecondaryBuffer->Unlock(Region1, Region1size, Region2, Region2size);
-					}
-				}
-
-				if (!SoundIsPlaying)
-				{
-					SoundIsPlaying = true;
-					SecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
+					FillSoundBuffer(&Sound, BytesToLock, BytesToWrite);
 				}
 
 				WindowDimension Dimension = GetWindowDimention(WindowHandle);
