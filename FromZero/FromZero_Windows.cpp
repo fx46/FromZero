@@ -1,16 +1,7 @@
 #include <windows.h>
+#include "FromZero.h"
 #include <dsound.h>
 #include <math.h>
-
-struct PixelBuffer
-{
-	BITMAPINFO BitmapInfo;
-	void *BitmapMemory;
-	int BitmapWidth;
-	int BitmapHeight;
-	int Pitch;
-	int BytesPerPixel = 4;
-};
 
 struct SoundOutput
 {
@@ -25,8 +16,18 @@ struct SoundOutput
 	int LatencySampleCount = SamplesPerSecond / 15;
 };
 
+struct WindowsPixelBuffer
+{
+	BITMAPINFO BitmapInfo;
+	void *BitmapMemory;
+	int BitmapWidth;
+	int BitmapHeight;
+	int Pitch;
+	int BytesPerPixel = 4;
+};
+
 static bool bRunning = true;
-static PixelBuffer Buffer;
+static WindowsPixelBuffer GlobalBuffer;
 static LPDIRECTSOUNDBUFFER SecondaryBuffer;
 static SoundOutput Sound;
 
@@ -98,25 +99,7 @@ static WindowDimension GetWindowDimention(HWND WindowHandle)
 	return Result;
 }
 
-static void RenderGradient(PixelBuffer *Buffer, int XOffset, int YOffset)
-{
-	UINT8* Row = (UINT8*)Buffer->BitmapMemory;	//8 bit because when we would do "Row + x", the x will be multiplied by the size of the object (pointer arithmetic)
-	for (int Y = 0; Y < Buffer->BitmapHeight; ++Y)
-	{
-		UINT32 *Pixel = (UINT32*)Row;
-		for (int X = 0; X < Buffer->BitmapWidth; ++X)
-		{
-			UINT8 Blue = (Y - YOffset);
-			UINT8 Green = (Y + YOffset);
-			UINT8 Red = (Y + 2 * YOffset);
-
-			*Pixel++ = (Red << 16 | Green << 8 | Blue);
-		}
-		Row += Buffer->Pitch;
-	}
-}
-
-static void ResizeDIBSection(PixelBuffer *Buffer, int Width, int Height)
+static void ResizeDIBSection(WindowsPixelBuffer *Buffer, int Width, int Height)
 {
 	if (Buffer->BitmapMemory)
 	{
@@ -136,7 +119,7 @@ static void ResizeDIBSection(PixelBuffer *Buffer, int Width, int Height)
 	Buffer->Pitch = Buffer->BitmapWidth * Buffer->BytesPerPixel;
 }
 
-static void DisplayBufferToWindow(PixelBuffer *Buffer, WindowDimension Dimension, HDC DeviceContext)
+static void DisplayBufferToWindow(WindowsPixelBuffer *Buffer, WindowDimension Dimension, HDC DeviceContext)
 {
 	StretchDIBits(DeviceContext, 0, 0, Dimension.Width, Dimension.Height, 0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, Buffer->BitmapMemory, &Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 }
@@ -173,7 +156,7 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 		{
 			PAINTSTRUCT P;
 			HDC DeviceContext = BeginPaint(WindowHandle, &P);
-			DisplayBufferToWindow(&Buffer, GetWindowDimention(WindowHandle), DeviceContext);
+			DisplayBufferToWindow(&GlobalBuffer, GetWindowDimention(WindowHandle), DeviceContext);
 			EndPaint(WindowHandle, &P);
 		} break;
 
@@ -302,7 +285,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 	INT64 PercormanceCountFrequency = PerformanceCountFrequencyResult.QuadPart;
 
 	WNDCLASSA WindowClass = {};
-	ResizeDIBSection(&Buffer, 1280, 720);
+	ResizeDIBSection(&GlobalBuffer, 1280, 720);
 	WindowClass.style = CS_HREDRAW|CS_VREDRAW;
 	WindowClass.lpfnWndProc = MainWindowCallback;
 	WindowClass.hInstance = Instance;
@@ -333,7 +316,12 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 				}
 
 				static int XOffset = 0, YOffset = 0;
-				RenderGradient(&Buffer, XOffset++, YOffset++);
+				PixelBuffer Buffer = {};
+				Buffer.BitmapMemory = GlobalBuffer.BitmapMemory;
+				Buffer.BitmapWidth = GlobalBuffer.BitmapWidth;
+				Buffer.BitmapHeight = GlobalBuffer.BitmapHeight;
+				Buffer.Pitch = GlobalBuffer.Pitch;
+				GameUpdateAndRencer(&Buffer, XOffset++, YOffset++);
 
 				DWORD PlayCursor;
 				DWORD WriteCursor;
@@ -358,7 +346,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 
 				WindowDimension Dimension = GetWindowDimention(WindowHandle);
 				HDC DeviceContext = GetDC(WindowHandle);
-				DisplayBufferToWindow(&Buffer, Dimension, DeviceContext);
+				DisplayBufferToWindow(&GlobalBuffer, Dimension, DeviceContext);
 
 				LARGE_INTEGER EndCounter;
 				QueryPerformanceCounter(&EndCounter);
