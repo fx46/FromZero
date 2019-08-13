@@ -323,9 +323,9 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 				Buffer.BitmapHeight = GlobalBuffer.BitmapHeight;
 				Buffer.Pitch = GlobalBuffer.Pitch;
 
-				SoundBuffer SBuffer = {};
+				SoundBuffer SBuffer = {};	//26:38
 
-				GameUpdateAndRencer(&Buffer, XOffset++, YOffset++);
+				GameUpdateAndRencer(&Buffer, XOffset++, YOffset++, &SBuffer);
 
 				DWORD PlayCursor;
 				DWORD WriteCursor;
