@@ -1,7 +1,8 @@
 #include <windows.h>
-#include "FromZero.h"
 #include <dsound.h>
 #include <math.h>
+
+#include "FromZero.h"
 
 struct SoundOutput
 {
@@ -321,6 +322,9 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 				Buffer.BitmapWidth = GlobalBuffer.BitmapWidth;
 				Buffer.BitmapHeight = GlobalBuffer.BitmapHeight;
 				Buffer.Pitch = GlobalBuffer.Pitch;
+
+				SoundBuffer SBuffer = {};
+
 				GameUpdateAndRencer(&Buffer, XOffset++, YOffset++);
 
 				DWORD PlayCursor;

@@ -1,5 +1,25 @@
 #include "FromZero.h"
 
+#include "math.h"
+
+static void OutputSound(SoundBuffer *Buffer)
+{
+	static float TSine;
+	signed short ToneVolume = 3000;
+	signed short *SampleOut = Buffer->Samples;
+	int ToneHz = 256;
+	int WavePeriod = Buffer->SamplesPerSecond / ToneHz;
+
+	for (int SampleIndex = 0; SampleIndex < Buffer->SampleCountToOutput; SampleIndex++)
+	{
+		float SineValue = sinf(TSine);
+		signed short SampleValue = (signed short)(SineValue * ToneVolume);
+		*SampleOut++ = SampleValue;
+		*SampleOut++ = SampleValue;
+		TSine += 2.0f * 3.14159265359f / static_cast<float>(WavePeriod);
+	}
+}
+
 static void RenderGradient(PixelBuffer *Buffer, int XOffset, int YOffset)
 {
 	unsigned char* Row = (unsigned char*)Buffer->BitmapMemory;	//8 bit because when we would do "Row + x", the x will be multiplied by the size of the object (pointer arithmetic)
@@ -18,7 +38,8 @@ static void RenderGradient(PixelBuffer *Buffer, int XOffset, int YOffset)
 	}
 }
 
-void GameUpdateAndRencer(PixelBuffer *Buffer, int XOffset, int YOffset)
+void GameUpdateAndRencer(PixelBuffer *Buffer, int XOffset, int YOffset, SoundBuffer *SBuffer)
 {
+	OutputSound(SBuffer);
 	RenderGradient(Buffer, XOffset, YOffset);
 }

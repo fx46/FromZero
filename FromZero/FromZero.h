@@ -9,5 +9,11 @@ struct PixelBuffer
 	int BytesPerPixel = 4;
 };
 
-static void RenderGradient(PixelBuffer *Buffer, int XOffset, int YOffset);
-void GameUpdateAndRencer(PixelBuffer *Buffer, int XOffset, int YOffset);
+struct SoundBuffer
+{
+	signed short *Samples;
+	int SampleCountToOutput;
+	int SamplesPerSecond;
+};
+
+void GameUpdateAndRencer(PixelBuffer *Buffer, int XOffset, int YOffset, SoundBuffer *SBuffer);
