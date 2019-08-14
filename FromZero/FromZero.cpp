@@ -2,12 +2,11 @@
 
 #include "math.h"
 
-static void OutputSound(SoundBuffer *Buffer)
+static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 {
 	static float TSine;
 	signed short ToneVolume = 3000;
 	signed short *SampleOut = Buffer->Samples;
-	int ToneHz = 256;
 	int WavePeriod = Buffer->SamplesPerSecond / ToneHz;
 
 	for (int SampleIndex = 0; SampleIndex < Buffer->SampleCountToOutput; SampleIndex++)
@@ -38,8 +37,8 @@ static void RenderGradient(PixelBuffer *Buffer, int XOffset, int YOffset)
 	}
 }
 
-void GameUpdateAndRencer(PixelBuffer *Buffer, int XOffset, int YOffset, SoundBuffer *SBuffer)
+void GameUpdateAndRencer(PixelBuffer *Buffer, int XOffset, int YOffset, SoundBuffer *SBuffer, int ToneHz)
 {
-	OutputSound(SBuffer);
+	OutputSound(SBuffer, ToneHz);
 	RenderGradient(Buffer, XOffset, YOffset);
 }
