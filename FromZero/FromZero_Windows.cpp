@@ -1,43 +1,16 @@
+#include "FromZero_Windows.h"
+
 #include <dsound.h>
 #include <malloc.h>
 #include <math.h>
-#include <windows.h>
 
 #include "FromZero.h"
-
-struct SoundOutput
-{
-	UINT32 RunningSampleIndex = 0;
-	INT16 Volume = 2000;
-	float TSine;
-	int ToneHz = 256;
-	int SamplesPerSecond = 48000;
-	int WavePeriod = SamplesPerSecond / ToneHz;
-	int BytesPerSample = sizeof(INT16) * 2;
-	int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;	//buffer size for 1 second
-	int LatencySampleCount = SamplesPerSecond / 15;
-};
-
-struct WindowsPixelBuffer
-{
-	BITMAPINFO BitmapInfo;
-	void *BitmapMemory;
-	int BitmapWidth;
-	int BitmapHeight;
-	int Pitch;
-	int BytesPerPixel = 4;
-};
 
 static bool bRunning = true;
 static WindowsPixelBuffer GlobalBuffer;
 static LPDIRECTSOUNDBUFFER SecondaryBuffer;
 static SoundOutput Sound;
-
-struct WindowDimension
-{
-	int Width;
-	int Height;
-};
+static GameInput Input = {};
 
 typedef HRESULT WINAPI direct_sound_create(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter);	//declaring function signature as a type
 
@@ -72,7 +45,6 @@ static void InitDSound(HWND WindowHandle, UINT32 SamplesPerSecond, UINT32 Buffer
 					{
 						//This is not actually a buffer, it is used to get a handle on the sound card to set the correct format. Maybe not needed?
 						OutputDebugStringA("Primary buffer format set.\n");
-						
 					}
 				}
 			}
@@ -178,13 +150,7 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 			else if (VKCode == 'A')
 			{
 				OutputDebugStringA("A Pressed!\n");
-
-				if (IsDown)
-				{
-					//test sound
-					Sound.ToneHz *= 2;
-					Sound.WavePeriod = Sound.SamplesPerSecond / Sound.ToneHz;
-				}
+				Input.A = IsDown;
 			}
 			else if (VKCode == 'S')
 			{
@@ -193,6 +159,7 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 			else if (VKCode == 'D')
 			{
 				OutputDebugStringA("D Pressed!\n");
+				Input.D = IsDown;
 			}
 			else if (VKCode == 'Q')
 			{
@@ -368,14 +335,13 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 				SBuffer.SampleCountToOutput = BytesToWrite / Sound.BytesPerSample;
 				SBuffer.Samples = Samples;
 
-				static int XOffset = 0, YOffset = 0;
 				PixelBuffer Buffer = {};
 				Buffer.BitmapMemory = GlobalBuffer.BitmapMemory;
 				Buffer.BitmapWidth = GlobalBuffer.BitmapWidth;
 				Buffer.BitmapHeight = GlobalBuffer.BitmapHeight;
 				Buffer.Pitch = GlobalBuffer.Pitch;
 
-				GameUpdateAndRencer(&Buffer, XOffset++, YOffset++, &SBuffer, Sound.ToneHz);
+				GameUpdateAndRencer(&Buffer, &SBuffer, &Input);
 
 				if (SoundIsValid)
 				{

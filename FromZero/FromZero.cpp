@@ -37,8 +37,23 @@ static void RenderGradient(PixelBuffer *Buffer, int XOffset, int YOffset)
 	}
 }
 
-void GameUpdateAndRencer(PixelBuffer *Buffer, int XOffset, int YOffset, SoundBuffer *SBuffer, int ToneHz)
+void GameUpdateAndRencer(PixelBuffer *Buffer, SoundBuffer *SBuffer, GameInput *Input)
 {
+	static int XOffset = 0;
+	static int YOffset = 0;
+	static int ToneHz = 256;
+
+	if (Input->A)
+	{
+		YOffset++;
+		ToneHz += 1;
+	}
+	if (Input->D)
+	{
+		YOffset--;
+		ToneHz -= 1;
+	}
+
 	OutputSound(SBuffer, ToneHz);
 	RenderGradient(Buffer, XOffset, YOffset);
 }

@@ -16,4 +16,12 @@ struct SoundBuffer
 	int SamplesPerSecond;
 };
 
-void GameUpdateAndRencer(PixelBuffer *Buffer, int XOffset, int YOffset, SoundBuffer *SBuffer, int ToneHz);
+struct GameInput
+{
+	bool W;
+	bool A;
+	bool S;
+	bool D;
+};
+
+void GameUpdateAndRencer(PixelBuffer *Buffer, SoundBuffer *SBuffer, GameInput *Input);
