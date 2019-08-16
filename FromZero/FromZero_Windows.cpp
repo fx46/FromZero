@@ -292,6 +292,15 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 
 			INT16 *Samples = static_cast<INT16 *>(VirtualAlloc(0, Sound.SecondaryBufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
 
+			GameMemory Memory = {};
+			Memory.PermanentStorageSize = (64 * 1024 * 1024);	//64 Megabytes
+			Memory.PermanentStorage = VirtualAlloc(0, Memory.PermanentStorageSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+			Memory.TransientStorageSize = (static_cast<UINT64>(4) * 1024 * 1024 * 1024);	//4 gigabytes
+			Memory.TransientStorage = VirtualAlloc(0, Memory.TransientStorageSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+			if (!Memory.PermanentStorage || !Samples || !Memory.TransientStorage)
+				return 0;
+
 			LARGE_INTEGER LastCounter;
 			QueryPerformanceCounter(&LastCounter);
 
@@ -341,7 +350,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 				Buffer.BitmapHeight = GlobalBuffer.BitmapHeight;
 				Buffer.Pitch = GlobalBuffer.Pitch;
 
-				GameUpdateAndRencer(&Buffer, &SBuffer, &Input);
+				GameUpdateAndRencer(&Buffer, &SBuffer, &Input, &Memory);
 
 				if (SoundIsValid)
 				{

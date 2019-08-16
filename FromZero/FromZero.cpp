@@ -5,14 +5,14 @@
 static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 {
 	static float TSine;
-	signed short ToneVolume = 3000;
-	signed short *SampleOut = Buffer->Samples;
+	INT16 ToneVolume = 3000;
+	INT16 *SampleOut = Buffer->Samples;
 	int WavePeriod = Buffer->SamplesPerSecond / ToneHz;
 
 	for (int SampleIndex = 0; SampleIndex < Buffer->SampleCountToOutput; SampleIndex++)
 	{
 		float SineValue = sinf(TSine);
-		signed short SampleValue = (signed short)(SineValue * ToneVolume);
+		INT16 SampleValue = static_cast<INT16>(SineValue * ToneVolume);
 		*SampleOut++ = SampleValue;
 		*SampleOut++ = SampleValue;
 		TSine += 2.0f * 3.14159265359f / static_cast<float>(WavePeriod);
@@ -21,15 +21,15 @@ static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 
 static void RenderGradient(PixelBuffer *Buffer, int XOffset, int YOffset)
 {
-	unsigned char* Row = (unsigned char*)Buffer->BitmapMemory;	//8 bit because when we would do "Row + x", the x will be multiplied by the size of the object (pointer arithmetic)
+	UINT8* Row = (UINT8*)Buffer->BitmapMemory;	//8 bit because when we would do "Row + x", the x will be multiplied by the size of the object (pointer arithmetic)
 	for (int Y = 0; Y < Buffer->BitmapHeight; ++Y)
 	{
-		unsigned int *Pixel = (unsigned int*)Row;
+		UINT32 *Pixel = reinterpret_cast<UINT32*>(Row);
 		for (int X = 0; X < Buffer->BitmapWidth; ++X)
 		{
-			unsigned char Blue = (Y - YOffset);
-			unsigned char Green = (Y + YOffset);
-			unsigned char Red = (Y + 2 * YOffset);
+			UINT8 Blue = (Y - YOffset);
+			UINT8 Green = (Y + YOffset);
+			UINT8 Red = (Y + 2 * YOffset);
 
 			*Pixel++ = (Red << 16 | Green << 8 | Blue);
 		}
@@ -37,23 +37,28 @@ static void RenderGradient(PixelBuffer *Buffer, int XOffset, int YOffset)
 	}
 }
 
-void GameUpdateAndRencer(PixelBuffer *Buffer, SoundBuffer *SBuffer, GameInput *Input)
+void GameUpdateAndRencer(PixelBuffer *Buffer, SoundBuffer *SBuffer, GameInput *Input, GameMemory *Memory)
 {
-	static int XOffset = 0;
-	static int YOffset = 0;
-	static int ToneHz = 256;
+	assert(sizeof(GameState) <= Memory->PermanentStorageSize);
+
+	GameState *State = reinterpret_cast<GameState*>(Memory->PermanentStorage);
+	if (!Memory->bIsInitialized)
+	{
+		State->ToneHz = 256;
+		Memory->bIsInitialized = true;
+	}
 
 	if (Input->A)
 	{
-		YOffset++;
-		ToneHz += 1;
+		State->YOffset++;
+		State->ToneHz += 1;
 	}
 	if (Input->D)
 	{
-		YOffset--;
-		ToneHz -= 1;
+		State->YOffset--;
+		State->ToneHz -= 1;
 	}
 
-	OutputSound(SBuffer, ToneHz);
-	RenderGradient(Buffer, XOffset, YOffset);
+	OutputSound(SBuffer, State->ToneHz);
+	RenderGradient(Buffer, State->XOffset, State->YOffset);
 }
