@@ -46,6 +46,16 @@ void GameUpdateAndRencer(PixelBuffer *Buffer, SoundBuffer *SBuffer, GameInput *I
 	{
 		State->ToneHz = 256;
 		Memory->bIsInitialized = true;
+
+#if DEBUG
+		const char *Filename = "assets/test.bmp";
+		ReadFileResults File = ReadFile(Filename);
+		if (File.Contents)
+		{
+			WriteFile("assets/testOut.bmp", File.ContentsSize, File.Contents);
+			FreeFileMemory(File.Contents);
+		}
+#endif
 	}
 
 	if (Input->A)

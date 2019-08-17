@@ -56,3 +56,20 @@ struct GameState
 };
 
 void GameUpdateAndRencer(PixelBuffer *Buffer, SoundBuffer *SBuffer, GameInput *Input, GameMemory *Memory);
+
+inline UINT32 SafeTruncateUINT64(UINT64 Value)
+{
+	assert(Value <= 0xFFFFFFFF);
+	return static_cast<UINT32>(Value);
+}
+
+#if DEBUG
+struct ReadFileResults
+{
+	UINT32 ContentsSize;
+	void *Contents;
+};
+ReadFileResults ReadFile(const char *Filename);
+void FreeFileMemory(void *Memory);
+bool WriteFile(const char *Filename, UINT32 MemorySize, void *Memory);
+#endif

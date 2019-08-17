@@ -266,6 +266,67 @@ static void FillSoundBuffer(SoundOutput *Sound, DWORD BytesToLock, DWORD BytesTo
 	}
 }
 
+#if DEBUG
+ReadFileResults ReadFile(const char *Filename)
+{
+	ReadFileResults Result = {};
+
+	HANDLE FileHandle = CreateFileA(Filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+	if (FileHandle != INVALID_HANDLE_VALUE)
+	{
+		LARGE_INTEGER FileSize;
+		if (GetFileSizeEx(FileHandle, &FileSize))
+		{
+			UINT32 FileSize32 = SafeTruncateUINT64(FileSize.QuadPart);
+			Result.Contents = VirtualAlloc(0, FileSize32, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+			if (Result.Contents)
+			{
+				DWORD BytesRead;
+				if (ReadFile(FileHandle, Result.Contents, FileSize32, &BytesRead, 0) && (FileSize32 == BytesRead))
+				{
+					Result.ContentsSize = FileSize32;
+				}
+				else
+				{
+					FreeFileMemory(Result.Contents);
+					Result.Contents = 0;
+				}
+			}
+		}
+		CloseHandle(FileHandle);
+	}
+
+	return(Result);
+}
+
+void FreeFileMemory(void *Memory)
+{
+	if (Memory)
+	{
+		VirtualFree(Memory, 0, MEM_RELEASE);
+	}
+}
+
+bool WriteFile(const char *Filename, UINT32 MemorySize, void *Memory)
+{
+	bool Result = false;
+
+	HANDLE FileHandle = CreateFileA(Filename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
+	if (FileHandle != INVALID_HANDLE_VALUE)
+	{
+		DWORD BytesWritten;
+		if (WriteFile(FileHandle, Memory, MemorySize, &BytesWritten, 0))
+		{
+			Result = (BytesWritten == MemorySize);
+		}
+
+		CloseHandle(FileHandle);
+	}
+
+	return(Result);
+}
+#endif
+
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, int ShowCmd)
 {
 	LARGE_INTEGER PerformanceCountFrequencyResult;
