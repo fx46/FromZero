@@ -26,9 +26,9 @@ struct PixelBuffer
 
 struct SoundBuffer
 {
-	INT16 *Samples;
 	int SampleCountToOutput;
 	int SamplesPerSecond;
+	INT16 *Samples;
 };
 
 struct GameInput
@@ -41,11 +41,11 @@ struct GameInput
 
 struct GameMemory
 {
-	bool bIsInitialized;
-	UINT64 PermanentStorageSize;
 	void *PermanentStorage;
-	UINT64 TransientStorageSize;
 	void *TransientStorage;
+	UINT64 PermanentStorageSize;
+	UINT64 TransientStorageSize;
+	bool bIsInitialized;
 };
 
 struct GameState
@@ -66,8 +66,8 @@ inline UINT32 SafeTruncateUINT64(UINT64 Value)
 #if DEBUG
 struct ReadFileResults
 {
-	UINT32 ContentsSize;
 	void *Contents;
+	UINT32 ContentsSize;
 };
 ReadFileResults ReadFile(const char *Filename);
 void FreeFileMemory(void *Memory);

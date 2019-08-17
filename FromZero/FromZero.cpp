@@ -27,9 +27,9 @@ static void RenderGradient(PixelBuffer *Buffer, int XOffset, int YOffset)
 		UINT32 *Pixel = reinterpret_cast<UINT32*>(Row);
 		for (int X = 0; X < Buffer->BitmapWidth; ++X)
 		{
-			UINT8 Blue = (Y - YOffset);
-			UINT8 Green = (Y + YOffset);
-			UINT8 Red = (Y + 2 * YOffset);
+			UINT8 Blue	= static_cast<UINT8>(Y - YOffset);
+			UINT8 Green = static_cast<UINT8>(Y + YOffset);
+			UINT8 Red	= static_cast<UINT8>(X + 2 * XOffset);
 
 			*Pixel++ = (Red << 16 | Green << 8 | Blue);
 		}

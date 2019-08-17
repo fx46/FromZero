@@ -9,7 +9,7 @@
 static bool bRunning = true;
 static WindowsPixelBuffer GlobalBuffer;
 static LPDIRECTSOUNDBUFFER SecondaryBuffer;
-static SoundOutput Sound;
+static SoundOutput SoundConfig;
 static GameInput Input = {};
 
 typedef HRESULT WINAPI direct_sound_create(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter);	//declaring function signature as a type
@@ -140,7 +140,7 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 		case WM_KEYUP:
 		{
 			WPARAM VKCode = WParam;
-			BOOL WasDown = ((LParam & (1 << 30)) != 0);
+			//BOOL WasDown = ((LParam & (1 << 30)) != 0);
 			bool IsDown = ((LParam & (1 << 31)) == 0);
 
 			if (VKCode == 'W')
@@ -327,7 +327,7 @@ bool WriteFile(const char *Filename, UINT32 MemorySize, void *Memory)
 }
 #endif
 
-int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, int ShowCmd)
+int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 {
 	LARGE_INTEGER PerformanceCountFrequencyResult;
 	QueryPerformanceFrequency(&PerformanceCountFrequencyResult);
@@ -347,11 +347,11 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 
 		if (WindowHandle)
 		{
-			InitDSound(WindowHandle, Sound.SamplesPerSecond, Sound.SecondaryBufferSize);
-			WinClearSoundBuffer(&Sound);
+			InitDSound(WindowHandle, SoundConfig.SamplesPerSecond, SoundConfig.SecondaryBufferSize);
+			WinClearSoundBuffer(&SoundConfig);
 			SecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
-			INT16 *Samples = static_cast<INT16 *>(VirtualAlloc(0, Sound.SecondaryBufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
+			INT16 *Samples = static_cast<INT16 *>(VirtualAlloc(0, SoundConfig.SecondaryBufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
 
 			GameMemory Memory = {};
 			Memory.PermanentStorageSize = (64 * 1024 * 1024);	//64 Megabytes
@@ -375,21 +375,21 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 					DispatchMessage(&Message);
 				}
 
-				DWORD BytesToLock;
-				DWORD TargetCursor;
-				DWORD BytesToWrite;
-				DWORD PlayCursor;
-				DWORD WriteCursor;
+				DWORD BytesToLock  = 0;
+				DWORD TargetCursor = 0;
+				DWORD BytesToWrite = 0;
+				DWORD PlayCursor   = 0;
+				DWORD WriteCursor  = 0;
 				bool SoundIsValid = false;
 				if (SUCCEEDED(SecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor)))
 				{
-					BytesToLock = (Sound.RunningSampleIndex * Sound.BytesPerSample) % Sound.SecondaryBufferSize;
-					TargetCursor = (PlayCursor + Sound.BytesPerSample * Sound.LatencySampleCount) % Sound.SecondaryBufferSize;
+					BytesToLock = (SoundConfig.RunningSampleIndex * SoundConfig.BytesPerSample) % SoundConfig.SecondaryBufferSize;
+					TargetCursor = (PlayCursor + SoundConfig.BytesPerSample * SoundConfig.LatencySampleCount) % SoundConfig.SecondaryBufferSize;
 					BytesToWrite = 0;
 
 					if (BytesToLock > TargetCursor)
 					{
-						BytesToWrite = Sound.SecondaryBufferSize - BytesToLock;
+						BytesToWrite = SoundConfig.SecondaryBufferSize - BytesToLock;
 						BytesToWrite += TargetCursor;
 					}
 					else
@@ -401,8 +401,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 				}
 
 				SoundBuffer SBuffer = {};
-				SBuffer.SamplesPerSecond = Sound.SamplesPerSecond;
-				SBuffer.SampleCountToOutput = BytesToWrite / Sound.BytesPerSample;
+				SBuffer.SamplesPerSecond = SoundConfig.SamplesPerSecond;
+				SBuffer.SampleCountToOutput = BytesToWrite / SoundConfig.BytesPerSample;
 				SBuffer.Samples = Samples;
 
 				PixelBuffer Buffer = {};
@@ -415,7 +415,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CmdLine, 
 
 				if (SoundIsValid)
 				{
-					FillSoundBuffer(&Sound, BytesToLock, BytesToWrite, &SBuffer);
+					FillSoundBuffer(&SoundConfig, BytesToLock, BytesToWrite, &SBuffer);
 				}
 
 				WindowDimension Dimension = GetWindowDimention(WindowHandle);
