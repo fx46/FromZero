@@ -6,11 +6,12 @@
 
 #include "FromZero.h"
 
-static bool bRunning = true;
+static INT64 PerformanceCountFrequency;
 static WindowsPixelBuffer GlobalBuffer;
 static LPDIRECTSOUNDBUFFER SecondaryBuffer;
 static SoundOutput SoundConfig;
 static GameInput Input = {};
+static bool bRunning = true;
 
 typedef HRESULT WINAPI direct_sound_create(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter);	//declaring function signature as a type
 
@@ -327,11 +328,32 @@ bool WriteFile(const char *Filename, UINT32 MemorySize, void *Memory)
 }
 #endif
 
+inline LARGE_INTEGER GetWallClock()
+{
+	LARGE_INTEGER Result;
+	QueryPerformanceCounter(&Result);
+	return Result;
+}
+
+inline float GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
+{
+	return static_cast<float>(End.QuadPart - Start.QuadPart) / static_cast<float>(PerformanceCountFrequency);
+}
+
+//TEST
+static void DebugSyncDisplay(WindowsPixelBuffer &GlobalBuffer, DWORD DebugLastPlayCursor, SoundOutput &SBuffer)
+{
+
+}
+//TEST
+
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 {
 	LARGE_INTEGER PerformanceCountFrequencyResult;
 	QueryPerformanceFrequency(&PerformanceCountFrequencyResult);
-	INT64 PercormanceCountFrequency = PerformanceCountFrequencyResult.QuadPart;
+	PerformanceCountFrequency = PerformanceCountFrequencyResult.QuadPart;
+
+	bool bSleepIsGranular = timeBeginPeriod(1) == TIMERR_NOERROR;	//Set the Windows scheduler granularity to 1ms so that Sleep() is more granular.
 
 	WNDCLASSA WindowClass = {};
 	ResizeDIBSection(&GlobalBuffer, 1280, 720);
@@ -340,6 +362,9 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 	WindowClass.hInstance = Instance;
 	WindowClass.lpszClassName = "FromZeroWindowClass"; 
 
+	int MonitorRefreshHz = 60;
+	int GameUpdateHz = MonitorRefreshHz / 2;
+	float TargetSecondsPerFrame = 1.0f / static_cast<float>(GameUpdateHz);
 
 	if (RegisterClass(&WindowClass))
 	{
@@ -356,14 +381,17 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 			GameMemory Memory = {};
 			Memory.PermanentStorageSize = (64 * 1024 * 1024);	//64 Megabytes
 			Memory.PermanentStorage = VirtualAlloc(0, Memory.PermanentStorageSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-			Memory.TransientStorageSize = (static_cast<UINT64>(4) * 1024 * 1024 * 1024);	//4 gigabytes
+			Memory.TransientStorageSize = (static_cast<UINT64>(1) * 1024 * 1024 * 1024);	//1 gigabytes
 			Memory.TransientStorage = VirtualAlloc(0, Memory.TransientStorageSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
 			if (!Memory.PermanentStorage || !Samples || !Memory.TransientStorage)
 				return 0;
 
-			LARGE_INTEGER LastCounter;
-			QueryPerformanceCounter(&LastCounter);
+			//TEST
+			DWORD DebugLastPlayCursor = 0;
+			//TEST
+
+			LARGE_INTEGER LastCounter = GetWallClock();
 
 			while (bRunning)
 			{
@@ -418,17 +446,47 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 					FillSoundBuffer(&SoundConfig, BytesToLock, BytesToWrite, &SBuffer);
 				}
 
-				WindowDimension Dimension = GetWindowDimention(WindowHandle);
-				HDC DeviceContext = GetDC(WindowHandle);
-				DisplayBufferToWindow(&GlobalBuffer, Dimension, DeviceContext);
+				LARGE_INTEGER WorkCounter = GetWallClock();
+				float SecondsElapsedForWork = GetSecondsElapsed(LastCounter, WorkCounter);
+				float SecondsElapsedForFrame = SecondsElapsedForWork;
 
-				LARGE_INTEGER EndCounter;
-				QueryPerformanceCounter(&EndCounter);
-				INT64 CounterElaped = EndCounter.QuadPart - LastCounter.QuadPart;
+				if (SecondsElapsedForFrame < TargetSecondsPerFrame)
+				{
+					if (bSleepIsGranular)
+					{
+						DWORD SleepMS = static_cast<DWORD>(1000.0f * (TargetSecondsPerFrame - SecondsElapsedForFrame));
+						if (SleepMS > 0) Sleep(SleepMS);
+					}
+					while (SecondsElapsedForFrame < TargetSecondsPerFrame)
+					{
+						SecondsElapsedForFrame = GetSecondsElapsed(LastCounter, GetWallClock());
+					}
+				}
+				else
+				{
+
+				}
+
+				//TEST
+				DebugSyncDisplay(&GlobalBuffer, DebugLastPlayCursor, &SBuffer);
+				//TEST
+
+				DisplayBufferToWindow(&GlobalBuffer, GetWindowDimention(WindowHandle), GetDC(WindowHandle));
+
+				//TEST
+				{
+					DWORD PlayCursor;
+					DWORD WriteCursor;
+					SecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
+					DWORD DebugLastPlayCursor = PlayCursor;
+				}
+				//TEST
+
 				char CBuffer[256];
-				wsprintf(CBuffer, "%d FPS\n", PercormanceCountFrequency / CounterElaped);
+				wsprintf(CBuffer, "%d FPS\n", static_cast<int>(1 / SecondsElapsedForFrame));
 				OutputDebugStringA(CBuffer);
-
+				
+				LARGE_INTEGER EndCounter = GetWallClock();
 				LastCounter = EndCounter;
 			}
 		}
