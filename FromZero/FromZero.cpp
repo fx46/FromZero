@@ -8,6 +8,7 @@ static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 	INT16 ToneVolume = 3000;
 	INT16 *SampleOut = Buffer->Samples;
 	int WavePeriod = Buffer->SamplesPerSecond / ToneHz;
+	const float Tau = 2.0f * 3.14159265359f;
 
 	for (int SampleIndex = 0; SampleIndex < Buffer->SampleCountToOutput; SampleIndex++)
 	{
@@ -15,7 +16,12 @@ static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 		INT16 SampleValue = static_cast<INT16>(SineValue * ToneVolume);
 		*SampleOut++ = SampleValue;
 		*SampleOut++ = SampleValue;
-		TSine += 2.0f * 3.14159265359f / static_cast<float>(WavePeriod);
+
+		TSine += Tau / static_cast<float>(WavePeriod);
+		if (TSine > Tau)
+		{
+			TSine -= Tau;
+		}
 	}
 }
 
@@ -37,7 +43,7 @@ static void RenderGradient(PixelBuffer *Buffer, int XOffset, int YOffset)
 	}
 }
 
-void GameUpdateAndRencer(PixelBuffer *Buffer, SoundBuffer *SBuffer, GameInput *Input, GameMemory *Memory)
+void GameUpdateAndRencer(PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory)
 {
 	assert(sizeof(GameState) <= Memory->PermanentStorageSize);
 
@@ -69,6 +75,11 @@ void GameUpdateAndRencer(PixelBuffer *Buffer, SoundBuffer *SBuffer, GameInput *I
 		State->ToneHz -= 1;
 	}
 
-	OutputSound(SBuffer, State->ToneHz);
 	RenderGradient(Buffer, State->XOffset, State->YOffset);
+}
+
+void GameGetSoundSamples(SoundBuffer *SBuffer, GameMemory *Memory)
+{
+	GameState *State = reinterpret_cast<GameState*>(Memory->PermanentStorage);
+	OutputSound(SBuffer, State->ToneHz);
 }

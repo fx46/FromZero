@@ -10,6 +10,7 @@ struct SoundOutput
 	int BytesPerSample = sizeof(INT16) * 2;
 	int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;	//buffer size for 1 second
 	int LatencySampleCount;
+	int SafetyBytes;
 };
 
 struct WindowsPixelBuffer
@@ -30,6 +31,12 @@ struct WindowDimension
 
 struct DebugTimeMarker
 {
-	DWORD PlayCursor;
-	DWORD WriteCursor;
+	DWORD OutputPlayCursor;
+	DWORD OutputWriteCursor;
+	DWORD OutputLocation;
+	DWORD OutputByteCount;
+	DWORD ExpectedFlipPlayCursor;
+
+	DWORD FlipPlayCursor;
+	DWORD FlipWriteCursor;
 };

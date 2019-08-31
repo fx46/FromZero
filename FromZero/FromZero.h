@@ -55,7 +55,8 @@ struct GameState
 	int YOffset;
 };
 
-void GameUpdateAndRencer(PixelBuffer *Buffer, SoundBuffer *SBuffer, GameInput *Input, GameMemory *Memory);
+void GameUpdateAndRencer(PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);
+void GameGetSoundSamples(SoundBuffer *SBuffer, GameMemory *Memory);
 
 inline UINT32 SafeTruncateUINT64(UINT64 Value)
 {
