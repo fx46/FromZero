@@ -2,8 +2,6 @@
 
 #include <dsound.h>
 #include <malloc.h>
-#include <math.h>
-
 #include "FromZero.h"
 
 static INT64 PerformanceCountFrequency;

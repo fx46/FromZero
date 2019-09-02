@@ -1,7 +1,5 @@
 #include "FromZero.h"
 
-#include "math.h"
-
 static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 {
 	static float TSine;
