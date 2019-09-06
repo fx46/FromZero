@@ -3,15 +3,15 @@
 static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 {
 	static float TSine;
-	INT16 ToneVolume = 3000;
+	//INT16 ToneVolume = 3000;
 	INT16 *SampleOut = Buffer->Samples;
 	int WavePeriod = Buffer->SamplesPerSecond / ToneHz;
 	const float Tau = 2.0f * 3.14159265359f;
 
 	for (int SampleIndex = 0; SampleIndex < Buffer->SampleCountToOutput; SampleIndex++)
 	{
-		float SineValue = sinf(TSine);
-		INT16 SampleValue = static_cast<INT16>(SineValue * ToneVolume);
+		//float SineValue = sinf(TSine);
+		INT16 SampleValue = 0; // static_cast<INT16>(SineValue * ToneVolume);
 		*SampleOut++ = SampleValue;
 		*SampleOut++ = SampleValue;
 
@@ -23,61 +23,68 @@ static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 	}
 }
 
-static void RenderGradient(PixelBuffer *Buffer, int XOffset, int YOffset)
+static INT32 RoundFloatToINT32(float Real32)
 {
-	UINT8* Row = (UINT8*)Buffer->BitmapMemory;	//8 bit because when we would do "Row + x", the x will be multiplied by the size of the object (pointer arithmetic)
-	for (int Y = 0; Y < Buffer->BitmapHeight; ++Y)
-	{
-		UINT32 *Pixel = reinterpret_cast<UINT32*>(Row);
-		for (int X = 0; X < Buffer->BitmapWidth; ++X)
-		{
-			UINT8 Blue	= static_cast<UINT8>(Y - YOffset);
-			UINT8 Green = static_cast<UINT8>(Y + YOffset);
-			UINT8 Red	= static_cast<UINT8>(X + 2 * XOffset);
+	return static_cast<INT32>(Real32 + 0.5f);
+}
 
-			*Pixel++ = (Red << 16 | Green << 8 | Blue);
+static void DrawRectangle(PixelBuffer *Buffer, float MinXfloat, float MaxXfloat, float MinYfloat, float MaxYfloat)
+{
+	INT32 MinX = RoundFloatToINT32(MinXfloat);
+	INT32 MaxX = RoundFloatToINT32(MaxXfloat);
+	INT32 MinY = RoundFloatToINT32(MinYfloat);
+	INT32 MaxY = RoundFloatToINT32(MaxYfloat);
+
+	if (MinX < 0)
+	{
+		MinX = 0;
+	}
+
+	if (MinY < 0)
+	{
+		MinY = 0;
+	}
+
+	if (MaxX > Buffer->BitmapWidth)
+	{
+		MaxX = Buffer->BitmapWidth;
+	}
+
+	if (MaxY > Buffer->BitmapHeight)
+	{
+		MaxY = Buffer->BitmapHeight;
+	}
+
+	UINT32 Color = 0xFFFFFFFF;
+
+	UINT32 *Pixel = static_cast<UINT32 *>(Buffer->BitmapMemory) + MinX + MinY * Buffer->Pitch / Buffer->BytesPerPixel;
+	const int NbPixelsBetweenRows = (Buffer->Pitch / Buffer->BytesPerPixel) - (MaxX - MinX);
+
+	for (int Y = MinY; Y < MaxY; ++Y)
+	{
+		for (int X = MinX; X < MaxX; ++X)
+		{
+			*Pixel++ = Color;
 		}
-		Row += Buffer->Pitch;
+		Pixel += NbPixelsBetweenRows;
 	}
 }
 
-void GameUpdateAndRencer(PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory)
+void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory)
 {
 	assert(sizeof(GameState) <= Memory->PermanentStorageSize);
 
 	GameState *State = reinterpret_cast<GameState*>(Memory->PermanentStorage);
 	if (!Memory->bIsInitialized)
 	{
-		State->ToneHz = 256;
 		Memory->bIsInitialized = true;
-
-#if DEBUG
-		const char *Filename = "assets/test.bmp";
-		ReadFileResults File = ReadFile(Filename);
-		if (File.Contents)
-		{
-			WriteFile("assets/testOut.bmp", File.ContentsSize, File.Contents);
-			FreeFileMemory(File.Contents);
-		}
-#endif
 	}
 
-	if (Input->A)
-	{
-		State->YOffset++;
-		State->ToneHz += 1;
-	}
-	if (Input->D)
-	{
-		State->YOffset--;
-		State->ToneHz -= 1;
-	}
-
-	RenderGradient(Buffer, State->XOffset, State->YOffset);
+	DrawRectangle(Buffer, 50, 100, 50, 100);
 }
 
-void GameGetSoundSamples(SoundBuffer *SBuffer, GameMemory *Memory)
+void GameGetSoundSamples(ThreadContext *Thread, SoundBuffer *SBuffer, GameMemory *Memory)
 {
 	GameState *State = reinterpret_cast<GameState*>(Memory->PermanentStorage);
-	OutputSound(SBuffer, State->ToneHz);
+	OutputSound(SBuffer, 400);
 }

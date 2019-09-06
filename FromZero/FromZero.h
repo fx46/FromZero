@@ -19,11 +19,16 @@ typedef unsigned __int64    UINT64;
 
 struct PixelBuffer
 {
-	void *BitmapMemory;
+	void *BitmapMemory;	//Pixels are 32-bits wide (BB GG RR XX)
 	int BitmapWidth;
 	int BitmapHeight;
 	int Pitch;
 	int BytesPerPixel = 4;
+};
+
+struct ThreadContext
+{
+	int PlaceHolder;
 };
 
 struct SoundBuffer
@@ -39,6 +44,10 @@ struct GameInput
 	bool A;
 	bool S;
 	bool D;
+	bool Q;
+	bool E;
+
+	float SecondsToAdvanceOverUpdate;
 };
 
 struct GameMemory
@@ -52,13 +61,11 @@ struct GameMemory
 
 struct GameState
 {
-	int ToneHz;
-	int XOffset;
-	int YOffset;
+
 };
 
-void GameUpdateAndRencer(PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);
-void GameGetSoundSamples(SoundBuffer *SBuffer, GameMemory *Memory);
+void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);
+void GameGetSoundSamples(ThreadContext *Thread, SoundBuffer *SBuffer, GameMemory *Memory);
 
 inline UINT32 SafeTruncateUINT64(UINT64 Value)
 {
@@ -72,7 +79,8 @@ struct ReadFileResults
 	void *Contents;
 	UINT32 ContentsSize;
 };
-ReadFileResults ReadFile(const char *Filename);
-void FreeFileMemory(void *Memory);
-bool WriteFile(const char *Filename, UINT32 MemorySize, void *Memory);
+
+ReadFileResults ReadFile(ThreadContext *Thread, const char *Filename);
+void FreeFileMemory(ThreadContext *Thread, void *Memory);
+bool WriteFile(ThreadContext *Thread, const char *Filename, UINT32 MemorySize, void *Memory);
 #endif

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <windows.h>
+#include "FromZero.h"
 
 struct SoundOutput
 {
@@ -9,7 +10,6 @@ struct SoundOutput
 	int SamplesPerSecond = 48000;
 	int BytesPerSample = sizeof(INT16) * 2;
 	int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;	//buffer size for 1 second
-	int LatencySampleCount;
 	int SafetyBytes;
 };
 
@@ -39,4 +39,10 @@ struct DebugTimeMarker
 
 	DWORD FlipPlayCursor;
 	DWORD FlipWriteCursor;
+};
+
+struct WindowsState
+{
+	UINT64 TotalSize;
+	void *GameMemoryBlock;
 };
