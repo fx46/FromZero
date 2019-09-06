@@ -28,7 +28,12 @@ static INT32 RoundFloatToINT32(float Real32)
 	return static_cast<INT32>(Real32 + 0.5f);
 }
 
-static void DrawRectangle(PixelBuffer *Buffer, float MinXfloat, float MaxXfloat, float MinYfloat, float MaxYfloat)
+static UINT32 RoundFloatToUINT32(float Real32)
+{
+	return static_cast<UINT32>(Real32 + 0.5f);
+}
+
+static void DrawRectangle(PixelBuffer *Buffer, float MinXfloat, float MinYfloat, float MaxXfloat,  float MaxYfloat, float R, float G, float B)
 {
 	INT32 MinX = RoundFloatToINT32(MinXfloat);
 	INT32 MaxX = RoundFloatToINT32(MaxXfloat);
@@ -55,7 +60,8 @@ static void DrawRectangle(PixelBuffer *Buffer, float MinXfloat, float MaxXfloat,
 		MaxY = Buffer->BitmapHeight;
 	}
 
-	UINT32 Color = 0xFFFFFFFF;
+	//Bit pattern: 0x AA RR GG BB
+	UINT32 Color = RoundFloatToUINT32(R * 255.f) << 16 | RoundFloatToUINT32(G * 255.f) << 8 | RoundFloatToUINT32(B * 255.f);
 
 	UINT32 *Pixel = static_cast<UINT32 *>(Buffer->BitmapMemory) + MinX + MinY * Buffer->Pitch / Buffer->BytesPerPixel;
 	const int NbPixelsBetweenRows = (Buffer->Pitch / Buffer->BytesPerPixel) - (MaxX - MinX);
@@ -80,7 +86,39 @@ void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *
 		Memory->bIsInitialized = true;
 	}
 
-	DrawRectangle(Buffer, 50, 100, 50, 100);
+	const int NbTileMapRows = 9;
+	const int NbTileMapColumns = 16;
+
+	UINT32 TileMap[NbTileMapRows][NbTileMapColumns] =
+	{
+		{1, 1, 1, 1,  0, 0, 1, 0,  1, 0, 0, 0,  1, 0, 0, 0},
+		{0, 0, 0, 0,  0, 0, 1, 0,  1, 0, 0, 0,  0, 1, 0, 0},
+		{0, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 1, 0},
+		{0, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 0, 1},
+		{0, 0, 0, 0,  0, 1, 0, 0,  1, 0, 0, 0,  0, 0, 1, 0},
+		{0, 0, 0, 0,  0, 1, 0, 0,  1, 0, 0, 0,  0, 1, 0, 0},
+		{0, 0, 0, 0,  0, 1, 0, 0,  1, 0, 0, 0,  1, 0, 0, 0},
+		{0, 1, 1, 1,  1, 0, 0, 0,  1, 0, 0, 0,  0, 1, 0, 0},
+		{0, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 1, 0}
+	};
+
+	DrawRectangle(Buffer, 0, 0, static_cast<float>(Buffer->BitmapWidth), static_cast<float>(Buffer->BitmapHeight), 1, 0, 1);
+
+	const float UpperLeftX = 10;
+	const float UpperLeftY = 10;
+	const float TileWidth = 50;
+	const float TileHeight = 50;
+
+	for (int Row = 0; Row < NbTileMapRows; ++Row)
+	{
+		for (int Colomn = 0; Colomn < NbTileMapColumns; ++Colomn)
+		{
+			float Color = TileMap[Row][Colomn] == 1 ? 10.f : 0.5f;
+			float MinX = UpperLeftX + static_cast<float>(Colomn) * TileWidth;
+			float MinY = UpperLeftY + static_cast<float>(Row) * TileHeight;
+			DrawRectangle(Buffer, MinX, MinY, MinX + TileWidth, MinY + TileHeight, Color, Color, Color);
+		}
+	}
 }
 
 void GameGetSoundSamples(ThreadContext *Thread, SoundBuffer *SBuffer, GameMemory *Memory)
