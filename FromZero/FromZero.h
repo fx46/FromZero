@@ -47,7 +47,7 @@ struct GameInput
 	bool Q;
 	bool E;
 
-	float SecondsToAdvanceOverUpdate;
+	float TimeElapsingOverFrame;
 };
 
 struct GameMemory
@@ -61,7 +61,8 @@ struct GameMemory
 
 struct GameState
 {
-
+	float PlayerX;
+	float PlayerY;
 };
 
 void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);

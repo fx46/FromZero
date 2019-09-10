@@ -83,42 +83,90 @@ void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *
 	GameState *State = reinterpret_cast<GameState*>(Memory->PermanentStorage);
 	if (!Memory->bIsInitialized)
 	{
+		State->PlayerX = 100.f;
+		State->PlayerY = 100.f;
 		Memory->bIsInitialized = true;
 	}
 
+	const float UpperLeftX = -30;
+	const float UpperLeftY = 0;
+	const float TileWidth = 60;
+	const float TileHeight = 60;
 	const int NbTileMapRows = 9;
-	const int NbTileMapColumns = 16;
-
+	const int NbTileMapColumns = 17;
 	UINT32 TileMap[NbTileMapRows][NbTileMapColumns] =
 	{
-		{1, 1, 1, 1,  0, 0, 1, 0,  1, 0, 0, 0,  1, 0, 0, 0},
-		{0, 0, 0, 0,  0, 0, 1, 0,  1, 0, 0, 0,  0, 1, 0, 0},
-		{0, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 1, 0},
-		{0, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 0, 1},
-		{0, 0, 0, 0,  0, 1, 0, 0,  1, 0, 0, 0,  0, 0, 1, 0},
-		{0, 0, 0, 0,  0, 1, 0, 0,  1, 0, 0, 0,  0, 1, 0, 0},
-		{0, 0, 0, 0,  0, 1, 0, 0,  1, 0, 0, 0,  1, 0, 0, 0},
-		{0, 1, 1, 1,  1, 0, 0, 0,  1, 0, 0, 0,  0, 1, 0, 0},
-		{0, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 1, 0}
+		{1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, 1},
+		{1, 0, 0, 0,  0, 0, 1, 0,  1, 0, 0, 0,  0, 0, 0, 0, 1},
+		{1, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 1, 0, 1},
+		{1, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 0, 1, 1},
+		{0, 0, 0, 0,  0, 1, 0, 0,  0, 0, 0, 0,  0, 0, 1, 0, 0},
+		{1, 0, 0, 0,  0, 1, 0, 0,  1, 0, 0, 0,  0, 1, 0, 0, 1},
+		{1, 0, 0, 0,  0, 1, 0, 0,  1, 0, 0, 0,  0, 0, 0, 0, 1},
+		{1, 1, 1, 1,  1, 0, 0, 0,  1, 0, 0, 0,  0, 1, 0, 0, 1},
+		{1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, 1}
 	};
 
-	DrawRectangle(Buffer, 0, 0, static_cast<float>(Buffer->BitmapWidth), static_cast<float>(Buffer->BitmapHeight), 1, 0, 1);
+	float dPlayerX = 0.0f;
+	float dPlayerY = 0.0f;
+	float PlayerSpeed = 128.0f; //pixels/seconds
 
-	const float UpperLeftX = 10;
-	const float UpperLeftY = 10;
-	const float TileWidth = 50;
-	const float TileHeight = 50;
+	if (Input->A)
+	{
+		dPlayerX -= PlayerSpeed;
+	}
+	if (Input->D)
+	{
+		dPlayerX += PlayerSpeed;
+	}
+	if (Input->W)
+	{
+		dPlayerY -= PlayerSpeed;
+	}
+	if (Input->S)
+	{
+		dPlayerY += PlayerSpeed;
+	}
+
+	const float NewPlayerX = State->PlayerX + dPlayerX * Input->TimeElapsingOverFrame;
+	const float NewPlayerY = State->PlayerY + dPlayerY * Input->TimeElapsingOverFrame;
+
+	const int PlayerTileX = (NewPlayerX - UpperLeftX) / TileWidth;
+	const int PlayerTileY = (NewPlayerY - UpperLeftY) / TileHeight;
+
+	bool bIsMovementValid = false;
+	if (PlayerTileX >= 0 && PlayerTileX < NbTileMapColumns && PlayerTileY >= 0 && PlayerTileY < NbTileMapRows)
+	{
+		bIsMovementValid = TileMap[PlayerTileY][PlayerTileX] == 0;
+	}
+
+	if (bIsMovementValid)
+	{
+		State->PlayerX = NewPlayerX;
+		State->PlayerY = NewPlayerY;
+	}
+
+	DrawRectangle(Buffer, 0, 0, static_cast<float>(Buffer->BitmapWidth), static_cast<float>(Buffer->BitmapHeight), 1, 0, 1);
 
 	for (int Row = 0; Row < NbTileMapRows; ++Row)
 	{
 		for (int Colomn = 0; Colomn < NbTileMapColumns; ++Colomn)
 		{
-			float Color = TileMap[Row][Colomn] == 1 ? 10.f : 0.5f;
+			float Color = TileMap[Row][Colomn] == 1 ? 1.f : 0.5f;
 			float MinX = UpperLeftX + static_cast<float>(Colomn) * TileWidth;
 			float MinY = UpperLeftY + static_cast<float>(Row) * TileHeight;
 			DrawRectangle(Buffer, MinX, MinY, MinX + TileWidth, MinY + TileHeight, Color, Color, Color);
 		}
 	}
+
+	float PlayerR = 1.0f;
+	float PlayerG = 1.0f;
+	float PlayerB = 0.0f;
+	float PlayerWidth = TileWidth * 0.75;
+	float PlayerHeight = TileHeight * 0.75;
+	float PlayerLeft = State->PlayerX - 0.5f * PlayerWidth;
+	float PlayerTop = State->PlayerY - PlayerHeight;
+	DrawRectangle(Buffer, PlayerLeft, PlayerTop, PlayerLeft + PlayerWidth, PlayerTop + PlayerHeight, PlayerR, PlayerG, PlayerB);
 }
 
 void GameGetSoundSamples(ThreadContext *Thread, SoundBuffer *SBuffer, GameMemory *Memory)

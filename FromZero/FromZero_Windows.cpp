@@ -60,7 +60,6 @@ static void InitDSound(HWND WindowHandle, UINT32 SamplesPerSecond, UINT32 Buffer
 	}
 }
 
-/*
 static WindowDimension GetWindowDimention(HWND WindowHandle)
 {
 	RECT ClientRect;
@@ -70,7 +69,7 @@ static WindowDimension GetWindowDimention(HWND WindowHandle)
 	Result.Height = ClientRect.bottom - ClientRect.top;
 
 	return Result;
-}*/
+}
 
 static void ResizeDIBSection(WindowsPixelBuffer *Buffer, int Width, int Height)
 {
@@ -92,9 +91,14 @@ static void ResizeDIBSection(WindowsPixelBuffer *Buffer, int Width, int Height)
 	Buffer->Pitch = Buffer->BitmapWidth * Buffer->BytesPerPixel;
 }
 
-static void DisplayBufferToWindow(WindowsPixelBuffer *Buffer/*, WindowDimension Dimension*/, HDC DeviceContext)
+static void DisplayBufferToWindow(WindowsPixelBuffer *Buffer, WindowDimension Dimension, HDC DeviceContext)
 {
-	StretchDIBits(DeviceContext, 0, 0, /*Dimension.Width*/Buffer->BitmapWidth, /*Dimension.Height*/Buffer->BitmapHeight, 0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, Buffer->BitmapMemory, &Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+	PatBlt(DeviceContext, 0, 0, Dimension.Width, Dimension.Height, BLACKNESS);
+
+	const int XOffSet = 10;
+	const int YOffSet = 10;
+
+	StretchDIBits(DeviceContext, XOffSet, YOffSet, Buffer->BitmapWidth, Buffer->BitmapHeight, 0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, Buffer->BitmapMemory, &Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 }
 
 static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPARAM WParam, LPARAM LParam)
@@ -124,7 +128,7 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 		{
 			PAINTSTRUCT P;
 			HDC DeviceContext = BeginPaint(WindowHandle, &P);
-			DisplayBufferToWindow(&GlobalBuffer/*, GetWindowDimention(WindowHandle)*/, DeviceContext);
+			DisplayBufferToWindow(&GlobalBuffer, GetWindowDimention(WindowHandle), DeviceContext);
 			EndPaint(WindowHandle, &P);
 		} break;
 
@@ -396,7 +400,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 			{
 				MonitorRefreshHz = RefreshRate;
 			}
-			float GameUpdateHz = (MonitorRefreshHz / 2.0f);
+			float GameUpdateHz = (MonitorRefreshHz / 1.0f);	//60 fps
 			float TargetSecondsPerFrame = 1.0f / GameUpdateHz;
 
 			SoundConfig.SafetyBytes = (int)(((float)SoundConfig.SamplesPerSecond * (float)SoundConfig.BytesPerSample / GameUpdateHz) / 3.0f);
@@ -428,8 +432,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 				return 0;
 			}
 
-			Input.SecondsToAdvanceOverUpdate = TargetSecondsPerFrame;
-
 			LARGE_INTEGER LastCounter = GetWallClock();
 			LARGE_INTEGER FlipWallClock = GetWallClock();
 
@@ -439,6 +441,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 			
 			while (bRunning)
 			{
+				Input.TimeElapsingOverFrame = TargetSecondsPerFrame;
+
 				MSG Message;
 
 				while (PeekMessage(&Message, 0, 0, 0, PM_REMOVE))
@@ -544,9 +548,13 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 				LARGE_INTEGER EndCounter = GetWallClock();
 				LastCounter = EndCounter;
 
-				DisplayBufferToWindow(&GlobalBuffer/*, GetWindowDimention(WindowHandle)*/, GetDC(WindowHandle));
+				DisplayBufferToWindow(&GlobalBuffer, GetWindowDimention(WindowHandle), GetDC(WindowHandle));
 
 				FlipWallClock = GetWallClock();
+
+				char CBuffer[256];
+				wsprintf(CBuffer, "%d FPS\n", static_cast<int>(1 / SecondsElapsedForFrame));
+				OutputDebugStringA(CBuffer);
 			}
 		}
 	}
