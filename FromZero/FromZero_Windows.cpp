@@ -93,10 +93,14 @@ static void ResizeDIBSection(WindowsPixelBuffer *Buffer, int Width, int Height)
 
 static void DisplayBufferToWindow(WindowsPixelBuffer *Buffer, WindowDimension Dimension, HDC DeviceContext)
 {
-	PatBlt(DeviceContext, 0, 0, Dimension.Width, Dimension.Height, BLACKNESS);
-
 	const int XOffSet = 10;
 	const int YOffSet = 10;
+
+	//Clear unused buffer pixels to black
+	PatBlt(DeviceContext, 0, 0, Dimension.Width, YOffSet, BLACKNESS);
+	PatBlt(DeviceContext, 0, YOffSet + Buffer->BitmapHeight, Dimension.Width, Dimension.Height, BLACKNESS);
+	PatBlt(DeviceContext, 0, 0, XOffSet, Dimension.Height, BLACKNESS);
+	PatBlt(DeviceContext, XOffSet + Buffer->BitmapWidth, 0, Dimension.Width, Dimension.Height, BLACKNESS);
 
 	StretchDIBits(DeviceContext, XOffSet, YOffSet, Buffer->BitmapWidth, Buffer->BitmapHeight, 0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, Buffer->BitmapMemory, &Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 }
