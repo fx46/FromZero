@@ -65,6 +65,25 @@ struct GameState
 	float PlayerY;
 };
 
+struct Tile_Map
+{
+	int NbRows;
+	int NbColumns;
+	float UpperLeftX;
+	float UpperLeftY;
+	float TileWidth;
+	float TileHeight;
+	UINT32 *Tiles;
+};
+
+struct World_Map
+{
+	int NbRows;
+	int NbColumns;
+
+	Tile_Map *TileMaps;
+};
+
 void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);
 void GameGetSoundSamples(ThreadContext *Thread, SoundBuffer *SBuffer, GameMemory *Memory);
 
