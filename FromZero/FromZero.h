@@ -97,8 +97,8 @@ struct Canonical_Position
 	int TileY;
 
 	//Tile-relative
-	float X;
-	float Y;
+	float TileRelX;
+	float TileRelY;
 };
 
 struct Raw_Position

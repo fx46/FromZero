@@ -118,13 +118,13 @@ static Canonical_Position GetWrappedWorldLocation(World_Map *World, Raw_Position
 	float Y = Pos.Y - World->UpperLeftY;
 	Result.TileX = static_cast<int>(floor(X / World->TileWidth));
 	Result.TileY = static_cast<int>(floor(Y / World->TileHeight));
-	Result.X = X - Result.TileX * World->TileWidth;
-	Result.Y = Y - Result.TileY * World->TileHeight;
+	Result.TileRelX = X - Result.TileX * World->TileWidth;
+	Result.TileRelY = Y - Result.TileY * World->TileHeight;
 
-	assert(Result.X >= 0)
-	assert(Result.Y >= 0)
-	assert(Result.X < World->TileWidth)
-	assert(Result.Y < World->TileHeight)
+	assert(Result.TileRelX >= 0)
+	assert(Result.TileRelY >= 0)
+	assert(Result.TileRelX < World->TileWidth)
+	assert(Result.TileRelY < World->TileHeight)
 
 	if (Result.TileX < 0)
 	{
@@ -283,8 +283,8 @@ void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *
 		Canonical_Position CanPos = GetWrappedWorldLocation(&World, Pos);
 		State->PlayerTileMapX = CanPos.TileMapX;
 		State->PlayerTileMapY = CanPos.TileMapY;
-		State->PlayerX = World.UpperLeftX + World.TileWidth * CanPos.TileX + CanPos.X;
-		State->PlayerY = World.UpperLeftY + World.TileHeight * CanPos.TileY + CanPos.Y;
+		State->PlayerX = World.UpperLeftX + World.TileWidth * CanPos.TileX + CanPos.TileRelX;
+		State->PlayerY = World.UpperLeftY + World.TileHeight * CanPos.TileY + CanPos.TileRelY;
 	}
 
 	DrawRectangle(Buffer, 0, 0, static_cast<float>(Buffer->BitmapWidth), static_cast<float>(Buffer->BitmapHeight), 1, 0, 1);
