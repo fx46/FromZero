@@ -63,25 +63,52 @@ struct GameState
 {
 	float PlayerX;
 	float PlayerY;
+	int PlayerTileMapX;
+	int PlayerTileMapY;
 };
 
 struct Tile_Map
 {
-	int NbRows;
-	int NbColumns;
-	float UpperLeftX;
-	float UpperLeftY;
-	float TileWidth;
-	float TileHeight;
 	UINT32 *Tiles;
 };
 
 struct World_Map
 {
-	int NbRows;
-	int NbColumns;
+	int TilesNbRows;
+	int TilesNbColumns;
+
+	float UpperLeftX;
+	float UpperLeftY;
+	float TileWidth;
+	float TileHeight;
+
+	int NbTileMapsRows;
+	int NbTileMapsColumns;
 
 	Tile_Map *TileMaps;
+};
+
+struct Canonical_Position
+{
+	int TileMapX;
+	int TileMapY;
+
+	int TileX;
+	int TileY;
+
+	//Tile-relative
+	float X;
+	float Y;
+};
+
+struct Raw_Position
+{
+	int TileMapX;
+	int TileMapY;
+
+	//TileMap-relative
+	float X;
+	float Y;
 };
 
 void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);
