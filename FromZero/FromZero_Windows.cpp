@@ -273,7 +273,7 @@ static void FillSoundBuffer(SoundOutput *Sound, DWORD BytesToLock, DWORD BytesTo
 }
 
 #if DEBUG
-ReadFileResults ReadFile(ThreadContext *Thread, const char *Filename)
+ReadFileResults ReadFile(/*ThreadContext *Thread,*/ const char *Filename)
 {
 	ReadFileResults Result = {};
 
@@ -294,7 +294,7 @@ ReadFileResults ReadFile(ThreadContext *Thread, const char *Filename)
 				}
 				else
 				{
-					FreeFileMemory(Thread, Result.Contents);
+					FreeFileMemory(/*Thread,*/ Result.Contents);
 					Result.Contents = 0;
 				}
 			}
@@ -305,7 +305,7 @@ ReadFileResults ReadFile(ThreadContext *Thread, const char *Filename)
 	return(Result);
 }
 
-void FreeFileMemory(ThreadContext *Thread, void *Memory)
+void FreeFileMemory(/*ThreadContext *Thread,*/ void *Memory)
 {
 	if (Memory)
 	{
@@ -313,7 +313,7 @@ void FreeFileMemory(ThreadContext *Thread, void *Memory)
 	}
 }
 
-bool WriteFile(ThreadContext *Thread, const char *Filename, UINT32 MemorySize, void *Memory)
+bool WriteFile(/*ThreadContext *Thread,*/ const char *Filename, UINT32 MemorySize, void *Memory)
 {
 	bool Result = false;
 
@@ -345,33 +345,33 @@ inline float GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
 	return static_cast<float>(End.QuadPart - Start.QuadPart) / static_cast<float>(PerformanceCountFrequency);
 }
 
-static void DebugDrawVertical(WindowsPixelBuffer *DebugBuffer, int X, int Top, int Bottom, UINT32 Color)
-{
-	if (Top <= 0)
-	{
-		Top = 0;
-	}
-	if (Bottom > DebugBuffer->BitmapHeight)
-	{
-		Bottom = DebugBuffer->BitmapHeight;
-	}
+//static void DebugDrawVertical(WindowsPixelBuffer *DebugBuffer, int X, int Top, int Bottom, UINT32 Color)
+//{
+//	if (Top <= 0)
+//	{
+//		Top = 0;
+//	}
+//	if (Bottom > DebugBuffer->BitmapHeight)
+//	{
+//		Bottom = DebugBuffer->BitmapHeight;
+//	}
+//
+//	if ((X >= 0) && (X < DebugBuffer->BitmapWidth))
+//	{
+//		UINT8 *Pixel = static_cast<UINT8 *>(DebugBuffer->BitmapMemory) + X * DebugBuffer->BytesPerPixel + Top * DebugBuffer->Pitch;
+//		for (int Y = Top; Y < Bottom; ++Y)
+//		{
+//			*(reinterpret_cast<UINT32 *>(Pixel)) = Color;
+//			Pixel += DebugBuffer->Pitch;
+//		}
+//	}
+//}
 
-	if ((X >= 0) && (X < DebugBuffer->BitmapWidth))
-	{
-		UINT8 *Pixel = static_cast<UINT8 *>(DebugBuffer->BitmapMemory) + X * DebugBuffer->BytesPerPixel + Top * DebugBuffer->Pitch;
-		for (int Y = Top; Y < Bottom; ++Y)
-		{
-			*(reinterpret_cast<UINT32 *>(Pixel)) = Color;
-			Pixel += DebugBuffer->Pitch;
-		}
-	}
-}
-
-static void DrawSoundBufferMarker(WindowsPixelBuffer *DebugBuffer, float C, int PadX, int Top, int Bottom, DWORD Value, UINT32 Color)
-{
-	int X = PadX + static_cast<int>(C * static_cast<float>(Value));
-	DebugDrawVertical(DebugBuffer, X, Top, Bottom, Color);
-}
+//static void DrawSoundBufferMarker(WindowsPixelBuffer *DebugBuffer, float C, int PadX, int Top, int Bottom, DWORD Value, UINT32 Color)
+//{
+//	int X = PadX + static_cast<int>(C * static_cast<float>(Value));
+//	DebugDrawVertical(DebugBuffer, X, Top, Bottom, Color);
+//}
 
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 {
@@ -439,8 +439,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 			LARGE_INTEGER LastCounter = GetWallClock();
 			LARGE_INTEGER FlipWallClock = GetWallClock();
 
-			DWORD AudioLatencyBytes = 0;
-			float AudioLatencySeconds = 0;
+			//DWORD AudioLatencyBytes = 0;
+			//float AudioLatencySeconds = 0;
 			bool SoundIsValid = false;
 			
 			while (bRunning)
@@ -455,14 +455,14 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 					DispatchMessage(&Message);
 				}
 
-				ThreadContext Thread = {};
+				//ThreadContext Thread = {};
 
 				PixelBuffer Buffer = {};
 				Buffer.BitmapMemory = GlobalBuffer.BitmapMemory;
 				Buffer.BitmapWidth = GlobalBuffer.BitmapWidth;
 				Buffer.BitmapHeight = GlobalBuffer.BitmapHeight;
 				Buffer.Pitch = GlobalBuffer.Pitch;
-				GameUpdateAndRencer(&Thread, &Buffer, &Input, &Memory);
+				GameUpdateAndRencer(/*&Thread,*/ &Buffer, &Input, &Memory);
 
 				LARGE_INTEGER AudioWallClock = GetWallClock();
 				float FromBeginToAudioSeconds = GetSecondsElapsed(FlipWallClock, AudioWallClock);
@@ -519,7 +519,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 					SBuffer.SamplesPerSecond = SoundConfig.SamplesPerSecond;
 					SBuffer.SampleCountToOutput = BytesToWrite / SoundConfig.BytesPerSample;
 					SBuffer.Samples = Samples;
-					GameGetSoundSamples(&Thread, &SBuffer, &Memory);
+					GameGetSoundSamples(/*&Thread,*/ &SBuffer/*, &Memory*/);
 					
 					FillSoundBuffer(&SoundConfig, BytesToLock, BytesToWrite, &SBuffer);
 				}

@@ -22,6 +22,11 @@
     <ClCompile Include="FromZero.cpp" />
     <ClCompile Include="FromZero_Windows.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FromZero.h" />
+    <ClInclude Include="FromZero_intrinsics.h" />
+    <ClInclude Include="FromZero_Windows.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{D98E9D55-38D5-4FCB-9608-BC3056AEA60B}</ProjectGuid>

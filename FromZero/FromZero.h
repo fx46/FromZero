@@ -26,10 +26,10 @@ struct PixelBuffer
 	int BytesPerPixel = 4;
 };
 
-struct ThreadContext
-{
-	int PlaceHolder;
-};
+//struct ThreadContext
+//{
+//	int PlaceHolder;
+//};
 
 struct SoundBuffer
 {
@@ -74,13 +74,14 @@ struct Tile_Map
 
 struct World_Map
 {
+	float TileSideInMeters;
+	UINT32 TileSideInPixels;
+
 	int TilesNbRows;
 	int TilesNbColumns;
 
 	float UpperLeftX;
 	float UpperLeftY;
-	float TileWidth;
-	float TileHeight;
 
 	int NbTileMapsRows;
 	int NbTileMapsColumns;
@@ -111,8 +112,8 @@ struct Raw_Position
 	float Y;
 };
 
-void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);
-void GameGetSoundSamples(ThreadContext *Thread, SoundBuffer *SBuffer, GameMemory *Memory);
+void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);
+void GameGetSoundSamples(/*ThreadContext *Thread,*/ SoundBuffer *SBuffer/*, GameMemory *Memory*/);
 
 inline UINT32 SafeTruncateUINT64(UINT64 Value)
 {
@@ -127,7 +128,7 @@ struct ReadFileResults
 	UINT32 ContentsSize;
 };
 
-ReadFileResults ReadFile(ThreadContext *Thread, const char *Filename);
-void FreeFileMemory(ThreadContext *Thread, void *Memory);
-bool WriteFile(ThreadContext *Thread, const char *Filename, UINT32 MemorySize, void *Memory);
+ReadFileResults ReadFile(/*ThreadContext *Thread,*/ const char *Filename);
+void FreeFileMemory(/*ThreadContext *Thread,*/ void *Memory);
+bool WriteFile(/*ThreadContext *Thread,*/ const char *Filename, UINT32 MemorySize, void *Memory);
 #endif

@@ -22,4 +22,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FromZero_intrinsics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FromZero.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FromZero_Windows.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

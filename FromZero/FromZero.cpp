@@ -1,5 +1,5 @@
 #include "FromZero.h"
-#include "math.h"
+#include "FromZero_intrinsics.h"
 
 static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 {
@@ -22,16 +22,6 @@ static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 			TSine -= Tau;
 		}
 	}
-}
-
-static INT32 RoundFloatToINT32(float Real32)
-{
-	return static_cast<INT32>(Real32 + 0.5f);
-}
-
-static UINT32 RoundFloatToUINT32(float Real32)
-{
-	return static_cast<UINT32>(Real32 + 0.5f);
 }
 
 static void DrawRectangle(PixelBuffer *Buffer, float MinXfloat, float MinYfloat, float MaxXfloat,  float MaxYfloat, float R, float G, float B)
@@ -116,15 +106,15 @@ static Canonical_Position GetWrappedWorldLocation(World_Map *World, Raw_Position
 
 	float X = Pos.X - World->UpperLeftX;
 	float Y = Pos.Y - World->UpperLeftY;
-	Result.TileX = static_cast<int>(floor(X / World->TileWidth));
-	Result.TileY = static_cast<int>(floor(Y / World->TileHeight));
-	Result.TileRelX = X - Result.TileX * World->TileWidth;
-	Result.TileRelY = Y - Result.TileY * World->TileHeight;
+	Result.TileX = FloorFloatToINT32(X / World->TileSideInPixels);
+	Result.TileY = FloorFloatToINT32(Y / World->TileSideInPixels);
+	Result.TileRelX = X - Result.TileX * World->TileSideInPixels;
+	Result.TileRelY = Y - Result.TileY * World->TileSideInPixels;
 
 	assert(Result.TileRelX >= 0)
 	assert(Result.TileRelY >= 0)
-	assert(Result.TileRelX < World->TileWidth)
-	assert(Result.TileRelY < World->TileHeight)
+	assert(Result.TileRelX < World->TileSideInPixels)
+	assert(Result.TileRelY < World->TileSideInPixels)
 
 	if (Result.TileX < 0)
 	{
@@ -157,7 +147,7 @@ static bool WorldIsEmptyAtPixel(World_Map *World, Raw_Position Pos)
 	return TileIsEmpty(World, TileMap, WrappedLocation.TileX, WrappedLocation.TileY);
 }
 
-void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory)
+void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory)
 {
 	assert(sizeof(GameState) <= Memory->PermanentStorageSize);
 
@@ -224,11 +214,12 @@ void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *
 
 	World.UpperLeftX =-30;
 	World.UpperLeftY = 0;
-	World.TileWidth	 = 60;
-	World.TileHeight = 60;
 
-	const float PlayerWidth = World.TileWidth * 0.75f;
-	const float PlayerHeight = World.TileHeight * 0.75f;
+	World.TileSideInMeters = 1.4f;
+	World.TileSideInPixels = 60;
+
+	const float PlayerWidth = World.TileSideInPixels * 0.75f;
+	const float PlayerHeight = World.TileSideInPixels * 0.75f;
 
 	TileMaps[0][0].Tiles = Tiles00;
 	TileMaps[0][1].Tiles = Tiles10;
@@ -283,8 +274,8 @@ void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *
 		Canonical_Position CanPos = GetWrappedWorldLocation(&World, Pos);
 		State->PlayerTileMapX = CanPos.TileMapX;
 		State->PlayerTileMapY = CanPos.TileMapY;
-		State->PlayerX = World.UpperLeftX + World.TileWidth * CanPos.TileX + CanPos.TileRelX;
-		State->PlayerY = World.UpperLeftY + World.TileHeight * CanPos.TileY + CanPos.TileRelY;
+		State->PlayerX = World.UpperLeftX + World.TileSideInPixels * CanPos.TileX + CanPos.TileRelX;
+		State->PlayerY = World.UpperLeftY + World.TileSideInPixels * CanPos.TileY + CanPos.TileRelY;
 	}
 
 	DrawRectangle(Buffer, 0, 0, static_cast<float>(Buffer->BitmapWidth), static_cast<float>(Buffer->BitmapHeight), 1, 0, 1);
@@ -294,9 +285,9 @@ void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *
 		for (int Colomn = 0; Colomn < World.TilesNbColumns; ++Colomn)
 		{
 			float Color = GetTileValue(&World, CurrentTileMap, Colomn, Row) == 1 ? 1.f : 0.5f;
-			float MinX = World.UpperLeftX + static_cast<float>(Colomn) * World.TileWidth;
-			float MinY = World.UpperLeftY + static_cast<float>(Row) * World.TileHeight;
-			DrawRectangle(Buffer, MinX, MinY, MinX + World.TileWidth, MinY + World.TileHeight, Color, Color, Color);
+			float MinX = World.UpperLeftX + static_cast<float>(Colomn) * World.TileSideInPixels;
+			float MinY = World.UpperLeftY + static_cast<float>(Row) * World.TileSideInPixels;
+			DrawRectangle(Buffer, MinX, MinY, MinX + World.TileSideInPixels, MinY + World.TileSideInPixels, Color, Color, Color);
 		}
 	}
 
@@ -308,8 +299,8 @@ void GameUpdateAndRencer(ThreadContext *Thread, PixelBuffer *Buffer, GameInput *
 	DrawRectangle(Buffer, PlayerLeft, PlayerTop, PlayerLeft + PlayerWidth, PlayerTop + PlayerHeight, PlayerR, PlayerG, PlayerB);
 }
 
-void GameGetSoundSamples(ThreadContext *Thread, SoundBuffer *SBuffer, GameMemory *Memory)
+void GameGetSoundSamples(/*ThreadContext *Thread,*/ SoundBuffer *SBuffer/*, GameMemory *Memory*/)
 {
-	GameState *State = reinterpret_cast<GameState*>(Memory->PermanentStorage);
+	//GameState *State = reinterpret_cast<GameState*>(Memory->PermanentStorage);
 	OutputSound(SBuffer, 400);
 }
