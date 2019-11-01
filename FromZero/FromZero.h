@@ -59,13 +59,19 @@ struct GameMemory
 	bool bIsInitialized;
 };
 
+struct Tile_Chunk_Position
+{
+	UINT32 TileChunkX;
+	UINT32 TileChunkY;
+
+	UINT32 ChunkRelTileX;
+	UINT32 ChunkRelTileY;
+};
+
 struct World_Position
 {
-	int TileMapX;
-	int TileMapY;
-
-	int TileX;
-	int TileY;
+	UINT32 AbsTileX;
+	UINT32 AbsTileY;
 
 	float TileRelX;
 	float TileRelY;
@@ -81,27 +87,25 @@ struct GameState
 	//int PlayerTileMapY;
 };
 
-struct Tile_Map
+struct Tile_Chunk
 {
 	UINT32 *Tiles;
 };
 
 struct World_Map
 {
+	UINT32 ChunkShift;
+	UINT32 ChunkMask;
+	UINT32 ChunkDimension;
+
 	float TileSideInMeters;
 	float MetersToPixels;
 	INT32 TileSideInPixels;
 
-	int TilesNbRows;
-	int TilesNbColumns;
+	int TileChunkCountX;
+	int TileChunkCountY;
 
-	float LowerLeftX;
-	float LowerLeftY;
-
-	int NbTileMapsRows;
-	int NbTileMapsColumns;
-
-	Tile_Map *TileMaps;
+	Tile_Chunk *TileChunks;
 };
 
 void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);
