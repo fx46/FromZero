@@ -59,7 +59,7 @@ struct GameMemory
 	bool bIsInitialized;
 };
 
-struct Canonical_Position
+struct World_Position
 {
 	int TileMapX;
 	int TileMapY;
@@ -73,7 +73,7 @@ struct Canonical_Position
 
 struct GameState
 {
-	Canonical_Position PlayerPosition;
+	World_Position PlayerPosition;
 
 	//float PlayerX;
 	//float PlayerY;

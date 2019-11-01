@@ -119,7 +119,7 @@ static void CanonicalizeCoord(World_Map *World, INT32 TileCount, INT32 *TileMap,
 	}
 }
 
-static Canonical_Position CanonicalizePosition(World_Map *World, Canonical_Position Pos)
+static World_Position CanonicalizePosition(World_Map *World, World_Position Pos)
 {
 	CanonicalizeCoord(World, World->TilesNbColumns, &Pos.TileMapX, &Pos.TileX, &Pos.TileRelX);
 	CanonicalizeCoord(World, World->TilesNbRows, &Pos.TileMapY, &Pos.TileY, &Pos.TileRelY);
@@ -127,7 +127,7 @@ static Canonical_Position CanonicalizePosition(World_Map *World, Canonical_Posit
 	return Pos;
 }
 
-static bool WorldIsEmptyAtPixel(World_Map *World, Canonical_Position Pos)
+static bool WorldIsEmptyAtPixel(World_Map *World, World_Position Pos)
 {
 	Tile_Map *TileMap = GetTileMap(World, Pos.TileMapX, Pos.TileMapY);
 	return TileIsEmpty(World, TileMap, Pos.TileX, Pos.TileY);
@@ -250,16 +250,16 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		dPlayerY += PlayerSpeed;
 	}
 
-	Canonical_Position NewPlayerPosition = State->PlayerPosition;
+	World_Position NewPlayerPosition = State->PlayerPosition;
 	NewPlayerPosition.TileRelX += dPlayerX * Input->TimeElapsingOverFrame;
 	NewPlayerPosition.TileRelY += dPlayerY * Input->TimeElapsingOverFrame;
 	NewPlayerPosition = CanonicalizePosition(&World, NewPlayerPosition);
 
-	Canonical_Position NewPosLeft = NewPlayerPosition;
+	World_Position NewPosLeft = NewPlayerPosition;
 	NewPosLeft.TileRelX -= PlayerWidth / 2;
 	NewPosLeft = CanonicalizePosition(&World, NewPosLeft);
 
-	Canonical_Position NewPosRight = NewPlayerPosition;
+	World_Position NewPosRight = NewPlayerPosition;
 	NewPosRight.TileRelX += PlayerWidth / 2;
 	NewPosRight = CanonicalizePosition(&World, NewPosRight);
 
