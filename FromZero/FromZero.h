@@ -95,8 +95,8 @@ struct World_Map
 	int TilesNbRows;
 	int TilesNbColumns;
 
-	float UpperLeftX;
-	float UpperLeftY;
+	float LowerLeftX;
+	float LowerLeftY;
 
 	int NbTileMapsRows;
 	int NbTileMapsColumns;

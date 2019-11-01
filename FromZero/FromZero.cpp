@@ -202,8 +202,8 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	World.TilesNbRows = NbRows;
 	World.TilesNbColumns = NbColumns;
 
-	World.UpperLeftX = -static_cast<float>(World.TileSideInPixels) / 2;
-	World.UpperLeftY = 0;
+	World.LowerLeftX = -static_cast<float>(World.TileSideInPixels) / 2;
+	World.LowerLeftY = static_cast<float>(Buffer->BitmapHeight);
 
 	const float PlayerWidth = World.TileSideInMeters * 0.65f;
 	const float PlayerHeight = World.TileSideInMeters * 0.65f;
@@ -243,11 +243,11 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	}
 	if (Input->W)
 	{
-		dPlayerY -= PlayerSpeed;
+		dPlayerY += PlayerSpeed;
 	}
 	if (Input->S)
 	{
-		dPlayerY += PlayerSpeed;
+		dPlayerY -= PlayerSpeed;
 	}
 
 	World_Position NewPlayerPosition = State->PlayerPosition;
@@ -279,17 +279,17 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 			float Color = GetTileValue(&World, CurrentTileMap, Column, Row) == 1 ? 1.f : 0.5f;
 			if (Row == State->PlayerPosition.TileY && Column == State->PlayerPosition.TileX)
 				Color = 0.f;
-			float MinX = World.UpperLeftX + static_cast<float>(Column) * World.TileSideInPixels;
-			float MinY = World.UpperLeftY + static_cast<float>(Row) * World.TileSideInPixels;
-			DrawRectangle(Buffer, MinX, MinY, MinX + World.TileSideInPixels, MinY + World.TileSideInPixels, Color, Color, Color);
+			float MinX = World.LowerLeftX + static_cast<float>(Column) * World.TileSideInPixels;
+			float MinY = World.LowerLeftY - static_cast<float>(Row) * World.TileSideInPixels;
+			DrawRectangle(Buffer, MinX, MinY - World.TileSideInPixels, MinX + World.TileSideInPixels, MinY, Color, Color, Color);
 		}
 	}
 
 	float PlayerR = 1.0f;
 	float PlayerG = 1.0f;
 	float PlayerB = 0.0f;
-	float PlayerLeft = World.UpperLeftX + World.TileSideInPixels * State->PlayerPosition.TileX + World.MetersToPixels * State->PlayerPosition.TileRelX - 0.5f * PlayerWidth * World.MetersToPixels;
-	float PlayerTop = World.UpperLeftY + World.TileSideInPixels * State->PlayerPosition.TileY + World.MetersToPixels * State->PlayerPosition.TileRelY - PlayerHeight * World.MetersToPixels;
+	float PlayerLeft = World.LowerLeftX + World.TileSideInPixels * State->PlayerPosition.TileX + World.MetersToPixels * State->PlayerPosition.TileRelX - 0.5f * PlayerWidth * World.MetersToPixels;
+	float PlayerTop = World.LowerLeftY - World.TileSideInPixels * State->PlayerPosition.TileY - World.MetersToPixels * State->PlayerPosition.TileRelY - PlayerHeight * World.MetersToPixels;
 	DrawRectangle(Buffer, PlayerLeft, PlayerTop, PlayerLeft + PlayerWidth * World.MetersToPixels, PlayerTop + PlayerHeight * World.MetersToPixels, PlayerR, PlayerG, PlayerB);
 }
 
