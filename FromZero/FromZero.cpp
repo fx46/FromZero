@@ -98,53 +98,39 @@ static bool TileIsEmpty(World_Map *World, Tile_Map *TileMap, int TestTileX, int 
 		&& GetTileValue(World, TileMap, TestTileX, TestTileY) == 0;
 }
 
-static Canonical_Position GetWrappedWorldLocation(World_Map *World, Raw_Position Pos)
+static void CanonicalizeCoord(World_Map *World, INT32 TileCount, INT32 *TileMap, INT32 *Tile, float *TileRel)
 {
-	Canonical_Position Result;
-	Result.TileMapX = Pos.TileMapX;
-	Result.TileMapY= Pos.TileMapY;
+	INT32 Offset = FloorFloatToINT32(*TileRel / World->TileSideInMeters);
+	*Tile += Offset;
+	*TileRel -= Offset * World->TileSideInMeters;
 
-	float X = Pos.X - World->UpperLeftX;
-	float Y = Pos.Y - World->UpperLeftY;
-	Result.TileX = FloorFloatToINT32(X / World->TileSideInPixels);
-	Result.TileY = FloorFloatToINT32(Y / World->TileSideInPixels);
-	Result.TileRelX = X - Result.TileX * World->TileSideInPixels;
-	Result.TileRelY = Y - Result.TileY * World->TileSideInPixels;
+	assert(*TileRel >= 0);
+	assert(*TileRel < World->TileSideInMeters);
 
-	assert(Result.TileRelX >= 0)
-	assert(Result.TileRelY >= 0)
-	assert(Result.TileRelX < World->TileSideInPixels)
-	assert(Result.TileRelY < World->TileSideInPixels)
-
-	if (Result.TileX < 0)
+	if (*Tile < 0)
 	{
-		Result.TileX += World->TilesNbColumns;
-		--Result.TileMapX;
+		*Tile += TileCount;
+		--*TileMap;
 	}
-	else if (Result.TileX >= World->TilesNbColumns)
+	else if (*Tile >= TileCount)
 	{
-		Result.TileX -= World->TilesNbColumns;
-		++Result.TileMapX;
+		*Tile -= TileCount;
+		++*TileMap;
 	}
-	if (Result.TileY < 0)
-	{
-		Result.TileY += World->TilesNbRows;
-		--Result.TileMapY;
-	}
-	else if (Result.TileY >= World->TilesNbRows)
-	{
-		Result.TileY -= World->TilesNbRows;
-		++Result.TileMapY;
-	}
-
-	return Result;
 }
 
-static bool WorldIsEmptyAtPixel(World_Map *World, Raw_Position Pos)
+static Canonical_Position CanonicalizePosition(World_Map *World, Canonical_Position Pos)
 {
-	Canonical_Position WrappedLocation = GetWrappedWorldLocation(World, Pos);
-	Tile_Map *TileMap = GetTileMap(World, WrappedLocation.TileMapX, WrappedLocation.TileMapY);
-	return TileIsEmpty(World, TileMap, WrappedLocation.TileX, WrappedLocation.TileY);
+	CanonicalizeCoord(World, World->TilesNbColumns, &Pos.TileMapX, &Pos.TileX, &Pos.TileRelX);
+	CanonicalizeCoord(World, World->TilesNbRows, &Pos.TileMapY, &Pos.TileY, &Pos.TileRelY);
+
+	return Pos;
+}
+
+static bool WorldIsEmptyAtPixel(World_Map *World, Canonical_Position Pos)
+{
+	Tile_Map *TileMap = GetTileMap(World, Pos.TileMapX, Pos.TileMapY);
+	return TileIsEmpty(World, TileMap, Pos.TileX, Pos.TileY);
 }
 
 void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory)
@@ -208,18 +194,19 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	World.TileMaps = reinterpret_cast<Tile_Map *>(TileMaps);
 	World.NbTileMapsColumns = 2;
 	World.NbTileMapsRows = 2;
+
+	World.TileSideInMeters = 1.4f;
+	World.TileSideInPixels = 60;
+	World.MetersToPixels = static_cast<float>(World.TileSideInPixels) / World.TileSideInMeters;
 	
 	World.TilesNbRows = NbRows;
 	World.TilesNbColumns = NbColumns;
 
-	World.UpperLeftX =-30;
+	World.UpperLeftX = -static_cast<float>(World.TileSideInPixels) / 2;
 	World.UpperLeftY = 0;
 
-	World.TileSideInMeters = 1.4f;
-	World.TileSideInPixels = 60;
-
-	const float PlayerWidth = World.TileSideInPixels * 0.75f;
-	const float PlayerHeight = World.TileSideInPixels * 0.75f;
+	const float PlayerWidth = World.TileSideInMeters * 0.65f;
+	const float PlayerHeight = World.TileSideInMeters * 0.65f;
 
 	TileMaps[0][0].Tiles = Tiles00;
 	TileMaps[0][1].Tiles = Tiles10;
@@ -229,17 +216,22 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	GameState *State = reinterpret_cast<GameState*>(Memory->PermanentStorage);
 	if (!Memory->bIsInitialized)
 	{
-		State->PlayerX = 100.f;
-		State->PlayerY = 290.f;
+		State->PlayerPosition.TileMapX = 0;
+		State->PlayerPosition.TileMapY = 0;
+		State->PlayerPosition.TileX = 3;
+		State->PlayerPosition.TileY = 3;
+		State->PlayerPosition.TileRelX = 5.f / World.MetersToPixels;
+		State->PlayerPosition.TileRelY = 5.f / World.MetersToPixels;
+
 		Memory->bIsInitialized = true;
 	}
 
-	Tile_Map *CurrentTileMap = GetTileMap(&World, State->PlayerTileMapX, State->PlayerTileMapY);
+	Tile_Map *CurrentTileMap = GetTileMap(&World, State->PlayerPosition.TileMapX, State->PlayerPosition.TileMapY);
 	assert(CurrentTileMap);
 
 	float dPlayerX = 0.0f;
 	float dPlayerY = 0.0f;
-	float PlayerSpeed = 128.0f; // pixels/seconds
+	float PlayerSpeed = 6.0f;
 
 	if (Input->A)
 	{
@@ -258,34 +250,36 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		dPlayerY += PlayerSpeed;
 	}
 
-	const float NewPlayerX = State->PlayerX + dPlayerX * Input->TimeElapsingOverFrame;
-	const float NewPlayerY = State->PlayerY + dPlayerY * Input->TimeElapsingOverFrame;
+	Canonical_Position NewPlayerPosition = State->PlayerPosition;
+	NewPlayerPosition.TileRelX += dPlayerX * Input->TimeElapsingOverFrame;
+	NewPlayerPosition.TileRelY += dPlayerY * Input->TimeElapsingOverFrame;
+	NewPlayerPosition = CanonicalizePosition(&World, NewPlayerPosition);
 
-	Raw_Position Pos = { State->PlayerTileMapX, State->PlayerTileMapY, NewPlayerX, NewPlayerY };
-	Raw_Position PosLeft = Pos;
-	PosLeft.X -= PlayerWidth / 2;
-	Raw_Position PosRight = Pos;
-	PosRight.X += PlayerWidth / 2;
+	Canonical_Position NewPosLeft = NewPlayerPosition;
+	NewPosLeft.TileRelX -= PlayerWidth / 2;
+	NewPosLeft = CanonicalizePosition(&World, NewPosLeft);
 
-	if (WorldIsEmptyAtPixel(&World, PosLeft) &&
-		WorldIsEmptyAtPixel(&World, PosRight) &&
-		WorldIsEmptyAtPixel(&World, Pos))
+	Canonical_Position NewPosRight = NewPlayerPosition;
+	NewPosRight.TileRelX += PlayerWidth / 2;
+	NewPosRight = CanonicalizePosition(&World, NewPosRight);
+
+	if (WorldIsEmptyAtPixel(&World, NewPosLeft) &&
+		WorldIsEmptyAtPixel(&World, NewPosRight) &&
+		WorldIsEmptyAtPixel(&World, NewPlayerPosition))
 	{
-		Canonical_Position CanPos = GetWrappedWorldLocation(&World, Pos);
-		State->PlayerTileMapX = CanPos.TileMapX;
-		State->PlayerTileMapY = CanPos.TileMapY;
-		State->PlayerX = World.UpperLeftX + World.TileSideInPixels * CanPos.TileX + CanPos.TileRelX;
-		State->PlayerY = World.UpperLeftY + World.TileSideInPixels * CanPos.TileY + CanPos.TileRelY;
+		State->PlayerPosition = NewPlayerPosition;
 	}
 
 	DrawRectangle(Buffer, 0, 0, static_cast<float>(Buffer->BitmapWidth), static_cast<float>(Buffer->BitmapHeight), 1, 0, 1);
 
 	for (int Row = 0; Row < World.TilesNbRows; ++Row)
 	{
-		for (int Colomn = 0; Colomn < World.TilesNbColumns; ++Colomn)
+		for (int Column = 0; Column < World.TilesNbColumns; ++Column)
 		{
-			float Color = GetTileValue(&World, CurrentTileMap, Colomn, Row) == 1 ? 1.f : 0.5f;
-			float MinX = World.UpperLeftX + static_cast<float>(Colomn) * World.TileSideInPixels;
+			float Color = GetTileValue(&World, CurrentTileMap, Column, Row) == 1 ? 1.f : 0.5f;
+			if (Row == State->PlayerPosition.TileY && Column == State->PlayerPosition.TileX)
+				Color = 0.f;
+			float MinX = World.UpperLeftX + static_cast<float>(Column) * World.TileSideInPixels;
 			float MinY = World.UpperLeftY + static_cast<float>(Row) * World.TileSideInPixels;
 			DrawRectangle(Buffer, MinX, MinY, MinX + World.TileSideInPixels, MinY + World.TileSideInPixels, Color, Color, Color);
 		}
@@ -294,9 +288,9 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	float PlayerR = 1.0f;
 	float PlayerG = 1.0f;
 	float PlayerB = 0.0f;
-	float PlayerLeft = State->PlayerX - 0.5f * PlayerWidth;
-	float PlayerTop = State->PlayerY - PlayerHeight;
-	DrawRectangle(Buffer, PlayerLeft, PlayerTop, PlayerLeft + PlayerWidth, PlayerTop + PlayerHeight, PlayerR, PlayerG, PlayerB);
+	float PlayerLeft = World.UpperLeftX + World.TileSideInPixels * State->PlayerPosition.TileX + World.MetersToPixels * State->PlayerPosition.TileRelX - 0.5f * PlayerWidth * World.MetersToPixels;
+	float PlayerTop = World.UpperLeftY + World.TileSideInPixels * State->PlayerPosition.TileY + World.MetersToPixels * State->PlayerPosition.TileRelY - PlayerHeight * World.MetersToPixels;
+	DrawRectangle(Buffer, PlayerLeft, PlayerTop, PlayerLeft + PlayerWidth * World.MetersToPixels, PlayerTop + PlayerHeight * World.MetersToPixels, PlayerR, PlayerG, PlayerB);
 }
 
 void GameGetSoundSamples(/*ThreadContext *Thread,*/ SoundBuffer *SBuffer/*, GameMemory *Memory*/)

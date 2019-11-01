@@ -59,12 +59,26 @@ struct GameMemory
 	bool bIsInitialized;
 };
 
+struct Canonical_Position
+{
+	int TileMapX;
+	int TileMapY;
+
+	int TileX;
+	int TileY;
+
+	float TileRelX;
+	float TileRelY;
+};
+
 struct GameState
 {
-	float PlayerX;
-	float PlayerY;
-	int PlayerTileMapX;
-	int PlayerTileMapY;
+	Canonical_Position PlayerPosition;
+
+	//float PlayerX;
+	//float PlayerY;
+	//int PlayerTileMapX;
+	//int PlayerTileMapY;
 };
 
 struct Tile_Map
@@ -75,7 +89,8 @@ struct Tile_Map
 struct World_Map
 {
 	float TileSideInMeters;
-	UINT32 TileSideInPixels;
+	float MetersToPixels;
+	INT32 TileSideInPixels;
 
 	int TilesNbRows;
 	int TilesNbColumns;
@@ -87,29 +102,6 @@ struct World_Map
 	int NbTileMapsColumns;
 
 	Tile_Map *TileMaps;
-};
-
-struct Canonical_Position
-{
-	int TileMapX;
-	int TileMapY;
-
-	int TileX;
-	int TileY;
-
-	//Tile-relative
-	float TileRelX;
-	float TileRelY;
-};
-
-struct Raw_Position
-{
-	int TileMapX;
-	int TileMapY;
-
-	//TileMap-relative
-	float X;
-	float Y;
 };
 
 void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);
