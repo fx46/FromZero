@@ -260,8 +260,8 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 			UINT32 Row = State->PlayerPosition.AbsTileY + RelRow;
 
 			float Color = GetTileValue(&World, Column, Row) == 1 ? 1.f : 0.5f;
-			//if (Row == State->PlayerPosition.AbsTileY && Column == State->PlayerPosition.AbsTileX)
-			//	Color = 0.f;
+			if (Row == State->PlayerPosition.AbsTileY && Column == State->PlayerPosition.AbsTileX)
+				Color = 0.f;
 			float MinX = 0.5f * Buffer->BitmapWidth - World.MetersToPixels * State->PlayerPosition.TileRelX + static_cast<float>(RelColumn) * World.TileSideInPixels;
 			float MinY = 0.5f * Buffer->BitmapHeight + World.MetersToPixels * State->PlayerPosition.TileRelY - static_cast<float>(RelRow) * World.TileSideInPixels;
 			DrawRectangle(Buffer, MinX, MinY - World.TileSideInPixels, MinX + World.TileSideInPixels, MinY, Color, Color, Color);
