@@ -252,9 +252,9 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 
 	DrawRectangle(Buffer, 0, 0, static_cast<float>(Buffer->BitmapWidth), static_cast<float>(Buffer->BitmapHeight), 1, 0, 1);
 
-	for (INT32 RelRow = -5; RelRow < 5; ++RelRow)
+	for (INT32 RelRow = -6; RelRow < 6; ++RelRow)
 	{
-		for (INT32 RelColumn = -10; RelColumn < 10; ++RelColumn)
+		for (INT32 RelColumn = -9; RelColumn < 9; ++RelColumn)
 		{
 			UINT32 Column = State->PlayerPosition.AbsTileX + RelColumn;
 			UINT32 Row = State->PlayerPosition.AbsTileY + RelRow;
@@ -262,8 +262,8 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 			float Color = GetTileValue(&World, Column, Row) == 1 ? 1.f : 0.5f;
 			//if (Row == State->PlayerPosition.AbsTileY && Column == State->PlayerPosition.AbsTileX)
 			//	Color = 0.f;
-			float MinX = 0.5f * Buffer->BitmapWidth + static_cast<float>(RelColumn) * World.TileSideInPixels;
-			float MinY = 0.5f * Buffer->BitmapHeight - static_cast<float>(RelRow) * World.TileSideInPixels;
+			float MinX = 0.5f * Buffer->BitmapWidth - World.MetersToPixels * State->PlayerPosition.TileRelX + static_cast<float>(RelColumn) * World.TileSideInPixels;
+			float MinY = 0.5f * Buffer->BitmapHeight + World.MetersToPixels * State->PlayerPosition.TileRelY - static_cast<float>(RelRow) * World.TileSideInPixels;
 			DrawRectangle(Buffer, MinX, MinY - World.TileSideInPixels, MinX + World.TileSideInPixels, MinY, Color, Color, Color);
 		}
 	}
@@ -271,8 +271,8 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	float PlayerR = 1.0f;
 	float PlayerG = 1.0f;
 	float PlayerB = 0.0f;
-	float PlayerLeft = 0.5f * Buffer->BitmapWidth + World.MetersToPixels * State->PlayerPosition.TileRelX - 0.5f * PlayerWidth * World.MetersToPixels;
-	float PlayerTop = 0.5f * Buffer->BitmapHeight - World.MetersToPixels * State->PlayerPosition.TileRelY - PlayerHeight * World.MetersToPixels;
+	float PlayerLeft = 0.5f * Buffer->BitmapWidth - 0.5f * PlayerWidth * World.MetersToPixels;
+	float PlayerTop = 0.5f * Buffer->BitmapHeight - PlayerHeight * World.MetersToPixels;
 	DrawRectangle(Buffer, PlayerLeft, PlayerTop, PlayerLeft + PlayerWidth * World.MetersToPixels, PlayerTop + PlayerHeight * World.MetersToPixels, PlayerR, PlayerG, PlayerB);
 }
 
