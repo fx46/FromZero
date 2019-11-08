@@ -199,6 +199,11 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 			{
 				OutputDebugStringA("VK_SPACE Pressed!\n");
 			}
+			else if (VKCode == VK_SHIFT)
+			{
+				OutputDebugStringA("VK_SHIFT Pressed!\n");
+				Input.Shift = IsDown;
+			}
 
 			bool AltKeyWasDown = LParam & (1 << 29);
 			if ((VKCode == VK_F4) && AltKeyWasDown)

@@ -101,12 +101,12 @@ static UINT32 GetTileValue(World_Map *World, Tile_Chunk *TileChunk, UINT32 TestT
 
 static void CanonicalizeCoord(World_Map *World, UINT32 *Tile, float *TileRel)
 {
-	INT32 Offset = FloorFloatToINT32(*TileRel / World->TileSideInMeters);
+	INT32 Offset = RoundFloatToINT32(*TileRel / World->TileSideInMeters);
 	*Tile += Offset;
 	*TileRel -= Offset * World->TileSideInMeters;
 
-	assert(*TileRel >= 0);
-	assert(*TileRel <= World->TileSideInMeters);
+	assert(*TileRel >= -World->TileSideInMeters / 2);
+	assert(*TileRel <=  World->TileSideInMeters / 2);
 }
 
 static World_Position CanonicalizePosition(World_Map *World, World_Position Pos)
@@ -192,8 +192,8 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	
 	World.ChunkDimension = 256;
 
-	float LowerLeftX = -static_cast<float>(World.TileSideInPixels) / 2;
-	float LowerLeftY = static_cast<float>(Buffer->BitmapHeight);
+	//float LowerLeftX = -static_cast<float>(World.TileSideInPixels) / 2;
+	//float LowerLeftY = static_cast<float>(Buffer->BitmapHeight);
 
 	const float PlayerWidth = World.TileSideInMeters * 0.65f;
 	const float PlayerHeight = World.TileSideInMeters * 0.65f;
@@ -213,6 +213,11 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	float dPlayerY = 0.0f;
 	float PlayerSpeed = 6.0f;
 
+	if (Input->Shift)
+	{
+		PlayerSpeed *= 1.5f;
+	}
+
 	if (Input->A)
 	{
 		dPlayerX -= PlayerSpeed;
@@ -229,6 +234,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	{
 		dPlayerY -= PlayerSpeed;
 	}
+
 
 	World_Position NewPlayerPosition = State->PlayerPosition;
 	NewPlayerPosition.TileRelX += dPlayerX * Input->TimeElapsingOverFrame;
@@ -262,9 +268,13 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 			float Color = GetTileValue(&World, Column, Row) == 1 ? 1.f : 0.5f;
 			if (Row == State->PlayerPosition.AbsTileY && Column == State->PlayerPosition.AbsTileX)
 				Color = 0.f;
-			float MinX = 0.5f * Buffer->BitmapWidth - World.MetersToPixels * State->PlayerPosition.TileRelX + static_cast<float>(RelColumn) * World.TileSideInPixels;
-			float MinY = 0.5f * Buffer->BitmapHeight + World.MetersToPixels * State->PlayerPosition.TileRelY - static_cast<float>(RelRow) * World.TileSideInPixels;
-			DrawRectangle(Buffer, MinX, MinY - World.TileSideInPixels, MinX + World.TileSideInPixels, MinY, Color, Color, Color);
+			float CenterX = 0.5f * Buffer->BitmapWidth - World.MetersToPixels * State->PlayerPosition.TileRelX + static_cast<float>(RelColumn) * World.TileSideInPixels;
+			float CenterY = 0.5f * Buffer->BitmapHeight + World.MetersToPixels * State->PlayerPosition.TileRelY - static_cast<float>(RelRow) * World.TileSideInPixels;
+			float MinX = CenterX - World.TileSideInPixels / 2;
+			float MinY = CenterY - World.TileSideInPixels / 2;
+			float MaxX = CenterX + World.TileSideInPixels / 2;
+			float MaxY = CenterY + World.TileSideInPixels / 2;
+			DrawRectangle(Buffer, MinX, MinY, MaxX, MaxY, Color, Color, Color);
 		}
 	}
 

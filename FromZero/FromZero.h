@@ -46,6 +46,7 @@ struct GameInput
 	bool D;
 	bool Q;
 	bool E;
+	bool Shift;
 
 	float TimeElapsingOverFrame;
 };
