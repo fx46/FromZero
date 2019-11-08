@@ -1,6 +1,7 @@
 #pragma once
 
 #include <math.h>
+#include "FromZero_TileMap.h"
 
 typedef signed char         INT8;
 typedef signed short        INT16;
@@ -60,29 +61,9 @@ struct GameMemory
 	bool bIsInitialized;
 };
 
-struct Tile_Chunk_Position
-{
-	UINT32 TileChunkX;
-	UINT32 TileChunkY;
-
-	UINT32 ChunkRelTileX;
-	UINT32 ChunkRelTileY;
-};
-
-struct World_Position
-{
-	// Fixed point tile locations, the high bits are the tile chunk index, 
-	// and the low bits are the tile index in the chunk.
-	UINT32 AbsTileX;
-	UINT32 AbsTileY;
-
-	float TileRelX;
-	float TileRelY;
-};
-
 struct GameState
 {
-	World_Position PlayerPosition;
+	TileMap_Position PlayerPosition;
 
 	//float PlayerX;
 	//float PlayerY;
@@ -90,25 +71,9 @@ struct GameState
 	//int PlayerTileMapY;
 };
 
-struct Tile_Chunk
-{
-	UINT32 *Tiles;
-};
-
 struct World_Map
 {
-	UINT32 ChunkShift;
-	UINT32 ChunkMask;
-	UINT32 ChunkDimension;
-
-	float TileSideInMeters;
-	float MetersToPixels;
-	INT32 TileSideInPixels;
-
-	int TileChunkCountX;
-	int TileChunkCountY;
-
-	Tile_Chunk *TileChunks;
+	Tile_Map *TileMap;
 };
 
 void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);
