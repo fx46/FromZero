@@ -177,8 +177,8 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	World_Map World;
 
 	// using 256x256 tile chunks
-	World.ChunkMask = 0xFF;
 	World.ChunkShift = 8;
+	World.ChunkMask = (1 << World.ChunkShift) - 1;
 
 	Tile_Chunk TileChunk;
 	TileChunk.Tiles = reinterpret_cast<UINT32 *>(Tiles);
@@ -252,9 +252,9 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 
 	DrawRectangle(Buffer, 0, 0, static_cast<float>(Buffer->BitmapWidth), static_cast<float>(Buffer->BitmapHeight), 1, 0, 1);
 
-	for (INT32 RelRow = -10; RelRow < 10; ++RelRow)
+	for (INT32 RelRow = -5; RelRow < 5; ++RelRow)
 	{
-		for (INT32 RelColumn = -20; RelColumn < 20; ++RelColumn)
+		for (INT32 RelColumn = -10; RelColumn < 10; ++RelColumn)
 		{
 			UINT32 Column = State->PlayerPosition.AbsTileX + RelColumn;
 			UINT32 Row = State->PlayerPosition.AbsTileY + RelRow;
