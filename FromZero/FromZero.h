@@ -61,19 +61,29 @@ struct GameMemory
 	bool bIsInitialized;
 };
 
+struct World_Map
+{
+	Tile_Map *TileMap;
+};
+
+struct Memory_Arena
+{
+	size_t Size;
+	UINT8 *Base;
+	size_t Used;
+};
+
 struct GameState
 {
+	World_Map *World;
+	Memory_Arena WorldArena;
+
 	TileMap_Position PlayerPosition;
 
 	//float PlayerX;
 	//float PlayerY;
 	//int PlayerTileMapX;
 	//int PlayerTileMapY;
-};
-
-struct World_Map
-{
-	Tile_Map *TileMap;
 };
 
 void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);

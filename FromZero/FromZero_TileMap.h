@@ -15,7 +15,7 @@ struct Tile_Chunk
 {
 	UINT32 *Tiles;
 };
-
+//1:08:45
 struct Tile_Map
 {
 	UINT32 ChunkShift;
@@ -26,8 +26,8 @@ struct Tile_Map
 	float MetersToPixels;
 	INT32 TileSideInPixels;
 
-	int TileChunkCountX;
-	int TileChunkCountY;
+	UINT32 TileChunkCountX;
+	UINT32 TileChunkCountY;
 
 	Tile_Chunk *TileChunks;
 };
