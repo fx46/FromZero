@@ -193,7 +193,7 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 			}
 			else if (VKCode == VK_ESCAPE)
 			{
-				OutputDebugStringA("VK_ESCAPE Pressed!\n");
+				bRunning = false;
 			}
 			else if (VKCode == VK_SPACE)
 			{
