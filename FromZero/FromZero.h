@@ -1,7 +1,7 @@
 #pragma once
 
-#include <math.h>
 #include "FromZero_TileMap.h"
+#include "FromZero_intrinsics.h"
 
 typedef signed char         INT8;
 typedef signed short        INT16;
@@ -11,12 +11,6 @@ typedef unsigned char       UINT8;
 typedef unsigned short      UINT16;
 typedef unsigned int        UINT32;
 typedef unsigned __int64    UINT64;
-
-#if DEBUG
-#define assert(Expression) if(!(Expression)) __debugbreak();
-#else
-#define assert(Expression)
-#endif
 
 struct PixelBuffer
 {
@@ -65,17 +59,6 @@ struct World_Map
 {
 	Tile_Map *TileMap;
 };
-
-struct Memory_Arena
-{
-	size_t Size;
-	UINT8 *Base;
-	size_t Used;
-};
-
-void InitializeArena(Memory_Arena *Arena, size_t Size, UINT8 *Base);
-void * PushSize(Memory_Arena *Arena, size_t Size);
-void * PushArray(Memory_Arena *Arena, size_t Size, UINT32 Count);
 
 struct GameState
 {

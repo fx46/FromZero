@@ -1,8 +1,4 @@
 #include "FromZero.h"
-#include "FromZero_intrinsics.h"
-#include "FromZero_TileMap.h"
-
-#include "FromZero_TileMap.cpp"
 
 static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 {
@@ -70,27 +66,6 @@ static void DrawRectangle(PixelBuffer *Buffer, float MinXfloat, float MinYfloat,
 	}
 }
 
-void InitializeArena(Memory_Arena *Arena, size_t Size, UINT8 *Base)
-{
-	Arena->Size = Size;
-	Arena->Base = Base;
-	Arena->Used = 0;
-}
-
-void * PushSize(Memory_Arena *Arena, size_t Size)
-{
-	assert(Arena->Used + Size <= Arena->Size);
-	void *Result = Arena->Base + Arena->Used;
-	Arena->Used += Size;
-
-	return Result;
-}
-
-void * PushArray(Memory_Arena *Arena, size_t Size, UINT32 Count)
-{
-	return PushSize(Arena, Size * Count);
-}
-
 void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory)
 {
 	assert(sizeof(GameState) <= Memory->PermanentStorageSize);
@@ -114,8 +89,13 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		State->World->TileMap->ChunkDimension = 1 << State->World->TileMap->ChunkShift;
 		State->World->TileMap->TileChunkCountX = 128;
 		State->World->TileMap->TileChunkCountY = 128;
-		State->World->TileMap->TileChunks
-			= reinterpret_cast<Tile_Chunk *>(PushArray(&State->WorldArena, sizeof(Tile_Chunk), State->World->TileMap->TileChunkCountX * State->World->TileMap->TileChunkCountY));
+		State->World->TileMap->TileChunkCountZ = 2;
+		State->World->TileMap->TileChunks 
+			= reinterpret_cast<Tile_Chunk *>(PushArray(&State->WorldArena, 
+														sizeof(Tile_Chunk), 
+														State->World->TileMap->TileChunkCountX * 
+														State->World->TileMap->TileChunkCountY *
+														State->World->TileMap->TileChunkCountZ));
 		State->World->TileMap->TileSideInMeters = 1.4f;
 
 		UINT32 TilesPerWidth = 17;
@@ -149,6 +129,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 				{
 					UINT32 AbsTileX = ScreenX * TilesPerWidth + TileX;
 					UINT32 AbsTileY = ScreenY * TilesPerHeight + TileY;
+					UINT32 AbsTileZ = 0;
 
 					UINT32 TileValue = 1;
 					if (TileX == 0 || TileY == 0 || TileX == TilesPerWidth - 1 || TileY == TilesPerHeight - 1)
@@ -174,7 +155,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 						TileValue = 1;
 					}
 
-					SetTileValue(&State->WorldArena, State->World->TileMap, AbsTileX, AbsTileY, TileValue);
+					SetTileValue(&State->WorldArena, State->World->TileMap, AbsTileX, AbsTileY, AbsTileZ, TileValue);
 				}
 			}
 			if (RandomChoiceUpOrRight == 0)
@@ -249,7 +230,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 			UINT32 Column = State->PlayerPosition.AbsTileX + RelColumn;
 			UINT32 Row = State->PlayerPosition.AbsTileY + RelRow;
 
-			UINT32 TileID = GetTileValue(State->World->TileMap, Column, Row);
+			UINT32 TileID = GetTileValue(State->World->TileMap, Column, Row, State->PlayerPosition.AbsTileZ);
 			if (TileID > 0)
 			{
 				float Color = TileID == 2 ? 1.f : 0.5f;

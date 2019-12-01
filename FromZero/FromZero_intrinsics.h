@@ -3,6 +3,12 @@
 #include <windows.h>
 #include "math.h"
 
+#if DEBUG
+#define assert(Expression) if(!(Expression)) __debugbreak();
+#else
+#define assert(Expression)
+#endif
+
 INT32 RoundFloatToINT32(float Real32);
 
 UINT32 RoundFloatToUINT32(float Real32);
