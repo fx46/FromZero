@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FromZero.cpp" />
+    <ClCompile Include="FromZero_intrinsics.cpp" />
     <ClCompile Include="FromZero_TileMap.cpp" />
     <ClCompile Include="FromZero_Windows.cpp" />
   </ItemGroup>
