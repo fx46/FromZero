@@ -18,18 +18,13 @@ struct Tile_Chunk
 
 struct Tile_Map
 {
+	Tile_Chunk *TileChunks;
 	UINT32 ChunkShift;
 	UINT32 ChunkMask;
 	UINT32 ChunkDimension;
-
-	float TileSideInMeters;
-	float MetersToPixels;
-	INT32 TileSideInPixels;
-
 	UINT32 TileChunkCountX;
 	UINT32 TileChunkCountY;
-
-	Tile_Chunk *TileChunks;
+	float TileSideInMeters;
 };
 
 struct TileMap_Position
