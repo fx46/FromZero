@@ -117,15 +117,34 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		State->World->TileMap->TileChunks
 			= reinterpret_cast<Tile_Chunk *>(PushArray(&State->WorldArena, sizeof(Tile_Chunk), State->World->TileMap->TileChunkCountX * State->World->TileMap->TileChunkCountY));
 		State->World->TileMap->TileSideInMeters = 1.4f;
-		State->World->TileMap->TileSideInPixels = 6;
+		State->World->TileMap->TileSideInPixels = 60;
 		State->World->TileMap->MetersToPixels = static_cast<float>(State->World->TileMap->TileSideInPixels) / State->World->TileMap->TileSideInMeters;
 
 		UINT32 TilesPerWidth = 17;
 		UINT32 TilesPerHeight = 9;
 		UINT32 ScreenX = 0;
 		UINT32 ScreenY = 0;
+		bool bDoorLeft = false;
+		bool bDoorRight = false;
+		bool bDoorTop = false;
+		bool bDoorBottom = false;
+
 		for (UINT32 ScreenIndex = 0; ScreenIndex < 10; ++ScreenIndex)
 		{
+			UINT32 RandomChoiceUpOrRight = rand() % 2;
+			bDoorLeft = bDoorRight;
+			bDoorBottom = bDoorTop;
+			if (RandomChoiceUpOrRight == 0)
+			{
+				bDoorRight = true;
+				bDoorTop = false;
+			}
+			else
+			{
+				bDoorRight = false;
+				bDoorTop = true;
+			}
+
 			for (UINT32 TileY = 0; TileY < TilesPerHeight; ++TileY)
 			{
 				for (UINT32 TileX = 0; TileX < TilesPerWidth; ++TileX)
@@ -134,22 +153,33 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 					UINT32 AbsTileY = ScreenY * TilesPerHeight + TileY;
 
 					UINT32 TileValue = 1;
-					if (TileX == 0 || TileX == TilesPerWidth - 1)
+					if (TileX == 0 || TileY == 0 || TileX == TilesPerWidth - 1 || TileY == TilesPerHeight - 1)
 					{
-						if (TileY != TilesPerHeight / 2)
-							TileValue = 2;
+						TileValue = 2;
 					}
-					if (TileY == 0 || TileY == TilesPerHeight - 1)
+
+					// Doorways
+					if (bDoorLeft && TileX == 0 && TileY == TilesPerHeight / 2)
 					{
-						if (TileX != TilesPerWidth / 2)
-							TileValue = 2;
+						TileValue = 1;
+					}
+					if (bDoorRight && TileX == TilesPerWidth - 1 && TileY == TilesPerHeight / 2)
+					{
+						TileValue = 1;
+					}
+					if (bDoorTop && TileY == TilesPerHeight - 1 && TileX == TilesPerWidth / 2)
+					{
+						TileValue = 1;
+					}
+					if (bDoorBottom && TileY == 0 && TileX == TilesPerWidth / 2)
+					{
+						TileValue = 1;
 					}
 
 					SetTileValue(&State->WorldArena, State->World->TileMap, AbsTileX, AbsTileY, TileValue);
 				}
 			}
-			UINT32 RandomChoice = rand() % 2;
-			if (RandomChoice == 0)
+			if (RandomChoiceUpOrRight == 0)
 			{
 				++ScreenX;
 			}
@@ -212,9 +242,9 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 
 	DrawRectangle(Buffer, 0, 0, static_cast<float>(Buffer->BitmapWidth), static_cast<float>(Buffer->BitmapHeight), 1, 0, 1);
 
-	for (INT32 RelRow = -60; RelRow < 60; ++RelRow)
+	for (INT32 RelRow = -6; RelRow < 6; ++RelRow)
 	{
-		for (INT32 RelColumn = -90; RelColumn < 90; ++RelColumn)
+		for (INT32 RelColumn = -9; RelColumn < 9; ++RelColumn)
 		{
 			UINT32 Column = State->PlayerPosition.AbsTileX + RelColumn;
 			UINT32 Row = State->PlayerPosition.AbsTileY + RelRow;
