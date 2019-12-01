@@ -102,22 +102,52 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		UINT32 TilesPerHeight = 9;
 		UINT32 ScreenX = 0;
 		UINT32 ScreenY = 0;
+		UINT32 AbsTileZ = 0;
 		bool bDoorLeft = false;
 		bool bDoorRight = false;
 		bool bDoorTop = false;
 		bool bDoorBottom = false;
+		bool bDoorUp = false;
+		bool bDoorDown = false;
 
-		for (UINT32 ScreenIndex = 0; ScreenIndex < 10; ++ScreenIndex)
+		for (UINT32 ScreenIndex = 0; ScreenIndex < 20; ++ScreenIndex)
 		{
-			UINT32 RandomChoiceUpOrRight = rand() % 2;
 			bDoorLeft = bDoorRight;
 			bDoorBottom = bDoorTop;
-			if (RandomChoiceUpOrRight == 0)
+			bDoorRight = false;
+			bDoorTop = false;
+
+			UINT32 RandomChoice;
+			if (bDoorUp || bDoorDown)
+				RandomChoice  = rand() % 2;
+			else
+				RandomChoice = rand() % 3;
+
+			if (RandomChoice == 2)
+			{
+				if (AbsTileZ == 0)
+				{
+					bDoorUp = true;
+					bDoorDown = false;
+				}
+				else
+				{
+					bDoorDown = true;
+					bDoorUp = false;
+				}
+			}
+			else
+			{
+				bDoorUp = false;
+				bDoorDown = false;
+			}
+
+			if (RandomChoice == 1)
 			{
 				bDoorRight = true;
 				bDoorTop = false;
 			}
-			else
+			else if (RandomChoice == 0)
 			{
 				bDoorRight = false;
 				bDoorTop = true;
@@ -129,7 +159,6 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 				{
 					UINT32 AbsTileX = ScreenX * TilesPerWidth + TileX;
 					UINT32 AbsTileY = ScreenY * TilesPerHeight + TileY;
-					UINT32 AbsTileZ = 0;
 
 					UINT32 TileValue = 1;
 					if (TileX == 0 || TileY == 0 || TileX == TilesPerWidth - 1 || TileY == TilesPerHeight - 1)
@@ -137,7 +166,6 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 						TileValue = 2;
 					}
 
-					// Doorways
 					if (bDoorLeft && TileX == 0 && TileY == TilesPerHeight / 2)
 					{
 						TileValue = 1;
@@ -154,11 +182,22 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 					{
 						TileValue = 1;
 					}
+					if (TileX == 2 && TileY == 2)
+					{
+						if (bDoorUp)
+							TileValue = 3;
+						else if (bDoorDown)
+							TileValue = 4;
+					}
 
 					SetTileValue(&State->WorldArena, State->World->TileMap, AbsTileX, AbsTileY, AbsTileZ, TileValue);
 				}
 			}
-			if (RandomChoiceUpOrRight == 0)
+			if (RandomChoice == 2)
+			{
+				AbsTileZ == 0 ? AbsTileZ = 1 : AbsTileZ = 0;
+			}
+			else if (RandomChoice == 1)
 			{
 				++ScreenX;
 			}
@@ -170,7 +209,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		Memory->bIsInitialized = true;
 	}
 
-	const UINT32 TileSideInPixels = 60;
+	const UINT32 TileSideInPixels = 10;
 	const float MetersToPixels = static_cast<float>(TileSideInPixels) / State->World->TileMap->TileSideInMeters;
 	const float PlayerWidth = State->World->TileMap->TileSideInMeters * 0.65f;
 	const float PlayerHeight = State->World->TileMap->TileSideInMeters * 0.65f;
@@ -178,6 +217,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	float dPlayerX = 0.0f;
 	float dPlayerY = 0.0f;
 	float PlayerSpeed = 6.0f;
+	static TileMap_Position testPos;
 
 	if (Input->Shift)
 	{
@@ -199,7 +239,6 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	{
 		dPlayerY -= PlayerSpeed;
 	}
-
 
 	TileMap_Position NewPlayerPosition = State->PlayerPosition;
 	NewPlayerPosition.TileRelX += dPlayerX * Input->TimeElapsingOverFrame;
@@ -223,9 +262,9 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 
 	DrawRectangle(Buffer, 0, 0, static_cast<float>(Buffer->BitmapWidth), static_cast<float>(Buffer->BitmapHeight), 1, 0, 1);
 
-	for (INT32 RelRow = -6; RelRow < 6; ++RelRow)
+	for (INT32 RelRow = -100; RelRow < 100; ++RelRow)
 	{
-		for (INT32 RelColumn = -9; RelColumn < 9; ++RelColumn)
+		for (INT32 RelColumn = -100; RelColumn < 100; ++RelColumn)
 		{
 			UINT32 Column = State->PlayerPosition.AbsTileX + RelColumn;
 			UINT32 Row = State->PlayerPosition.AbsTileY + RelRow;
@@ -234,6 +273,8 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 			if (TileID > 0)
 			{
 				float Color = TileID == 2 ? 1.f : 0.5f;
+				if (TileID > 2)
+					Color = 0.25f;
 				if (Row == State->PlayerPosition.AbsTileY && Column == State->PlayerPosition.AbsTileX)
 					Color = 0.f;
 				float CenterX = 0.5f * Buffer->BitmapWidth - MetersToPixels * State->PlayerPosition.TileRelX + static_cast<float>(RelColumn) * TileSideInPixels;

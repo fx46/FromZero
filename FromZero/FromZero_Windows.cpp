@@ -147,32 +147,26 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 
 			if (VKCode == 'W')
 			{
-				OutputDebugStringA("W Pressed!\n");
 				Input.W = IsDown;
 			}
 			else if (VKCode == 'A')
 			{
-				OutputDebugStringA("A Pressed!\n");
 				Input.A = IsDown;
 			}
 			else if (VKCode == 'S')
 			{
-				OutputDebugStringA("S Pressed!\n");
 				Input.S = IsDown;
 			}
 			else if (VKCode == 'D')
 			{
-				OutputDebugStringA("D Pressed!\n");
 				Input.D = IsDown;
 			}
 			else if (VKCode == 'Q')
 			{
-				OutputDebugStringA("Q Pressed!\n");
 				Input.Q = IsDown;
 			}
 			else if (VKCode == 'E')
 			{
-				OutputDebugStringA("E Pressed!\n");
 				Input.E = IsDown;
 			}
 			else if (VKCode == VK_DOWN)
