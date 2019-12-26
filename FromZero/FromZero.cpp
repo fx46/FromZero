@@ -120,6 +120,15 @@ static Bitmap LoadBMP(const char *FileName)
 		Result.Pixels = Pixels;
 		Result.Height = Header->Height;
 		Result.Width = Header->Width;
+
+		UINT32 *SourceDest = Pixels;
+		for (int Y = 0; Y < Header->Height; ++Y)
+		{
+			for (int X = 0; X < Header->Width; X++)
+			{
+				*SourceDest++ = (*SourceDest & Header->RedMask) << 16 | (*SourceDest & Header->GreenMask << 8) | (*SourceDest & Header->BlueMask);
+			}
+		}
 	}
 
 	return Result;
