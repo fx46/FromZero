@@ -60,18 +60,46 @@ struct World_Map
 	Tile_Map *TileMap;
 };
 
+struct Bitmap
+{
+	int Width;
+	int Height;
+	UINT32 *Pixels;
+};
+
 struct GameState
 {
 	World_Map *World;
 	Memory_Arena WorldArena;
-
 	TileMap_Position PlayerPosition;
-
-	//float PlayerX;
-	//float PlayerY;
-	//int PlayerTileMapX;
-	//int PlayerTileMapY;
+	Bitmap Background;
+	Bitmap Player;
 };
+
+#pragma pack(push, 1)
+struct Bitmap_Header
+{
+	UINT16 FileType;
+	UINT32 FileSize;
+	UINT16 Reserved1;
+	UINT16 Reserved2;
+	UINT32 BitmapOffset;
+	UINT32 Size;
+	INT32 Width;
+	INT32 Height;
+	UINT16 Planes;
+	UINT16 BitsPerPixel;
+	UINT32 Compression;
+	UINT32 SizeOfBitmap;
+	UINT32 HorzResolution;
+	UINT32 VertResolution;
+	UINT32 ColorsUsed;
+	UINT32 ColorsImportant;
+	UINT32 RedMask;
+	UINT32 GreenMask;
+	UINT32 BlueMask;
+};
+#pragma pack(pop)
 
 void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);
 void GameGetSoundSamples(/*ThreadContext *Thread,*/ SoundBuffer *SBuffer/*, GameMemory *Memory*/);

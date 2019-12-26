@@ -271,7 +271,6 @@ static void FillSoundBuffer(SoundOutput *Sound, DWORD BytesToLock, DWORD BytesTo
 	}
 }
 
-#if DEBUG
 ReadFileResults ReadFile(/*ThreadContext *Thread,*/ const char *Filename)
 {
 	ReadFileResults Result = {};
@@ -330,7 +329,6 @@ bool WriteFile(/*ThreadContext *Thread,*/ const char *Filename, UINT32 MemorySiz
 
 	return(Result);
 }
-#endif
 
 inline LARGE_INTEGER GetWallClock()
 {

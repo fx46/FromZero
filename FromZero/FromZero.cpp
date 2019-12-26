@@ -23,6 +23,48 @@ static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 	}
 }
 
+static void DrawBitmap(PixelBuffer *Buffer, Bitmap *Bmap, float RealX, float RealY)
+{
+	INT32 MinX = RoundFloatToINT32(RealX);
+	INT32 MinY = RoundFloatToINT32(RealY);
+	INT32 MaxX = RoundFloatToINT32(RealX + static_cast<float>(Bmap->Width));
+	INT32 MaxY = RoundFloatToINT32(RealY + static_cast<float>(Bmap->Height));
+
+	if (MinX < 0)
+	{
+		MinX = 0;
+	}
+
+	if (MinY < 0)
+	{
+		MinY = 0;
+	}
+
+	if (MaxX > Buffer->BitmapWidth)
+	{
+		MaxX = Buffer->BitmapWidth;
+	}
+
+	if (MaxY > Buffer->BitmapHeight)
+	{
+		MaxY = Buffer->BitmapHeight;
+	}
+
+	UINT32 *SourceRow = Bmap->Pixels + Bmap->Width * (Bmap->Height - 1);
+	UINT8 *DestRow = reinterpret_cast<UINT8 *>(Buffer->BitmapMemory) + MinX * Buffer->BytesPerPixel + MinY * Buffer->Pitch;
+	for (INT32 Y = MinY; Y < MaxY; ++Y)
+	{
+		UINT32 *Dest = reinterpret_cast<UINT32 *>(DestRow);
+		UINT32 *Source = SourceRow;
+		for (INT32 X = MinX; X < MaxX; ++X)
+		{
+			*Dest++ = *Source++;
+		}
+		DestRow += Buffer->Pitch;
+		SourceRow -= Bmap->Width;
+	}
+}
+
 static void DrawRectangle(PixelBuffer *Buffer, float MinXfloat, float MinYfloat, float MaxXfloat,  float MaxYfloat, float R, float G, float B)
 {
 	INT32 MinX = RoundFloatToINT32(MinXfloat);
@@ -53,17 +95,34 @@ static void DrawRectangle(PixelBuffer *Buffer, float MinXfloat, float MinYfloat,
 	//Bit pattern: 0x AA RR GG BB
 	UINT32 Color = RoundFloatToUINT32(R * 255.f) << 16 | RoundFloatToUINT32(G * 255.f) << 8 | RoundFloatToUINT32(B * 255.f);
 
-	UINT32 *Pixel = static_cast<UINT32 *>(Buffer->BitmapMemory) + MinX + MinY * Buffer->Pitch / Buffer->BytesPerPixel;
-	const int NbPixelsBetweenRows = (Buffer->Pitch / Buffer->BytesPerPixel) - (MaxX - MinX);
+	UINT8 *Row = static_cast<UINT8 *>(Buffer->BitmapMemory) + MinX *Buffer->BytesPerPixel + MinY * Buffer->Pitch;
 
 	for (int Y = MinY; Y < MaxY; ++Y)
 	{
+		UINT32 *Pixel = reinterpret_cast<UINT32 *>(Row);
 		for (int X = MinX; X < MaxX; ++X)
 		{
 			*Pixel++ = Color;
 		}
-		Pixel += NbPixelsBetweenRows;
+		Row += Buffer->Pitch;
 	}
+}
+
+static Bitmap LoadBMP(const char *FileName)
+{
+	Bitmap Result = {};
+	ReadFileResults ReadResult = ReadFile(FileName);
+
+	if (ReadResult.ContentsSize != 0)
+	{
+		Bitmap_Header *Header = static_cast<Bitmap_Header *>(ReadResult.Contents);
+		UINT32 *Pixels = reinterpret_cast<UINT32 *>(static_cast<UINT8 *>(ReadResult.Contents) + Header->BitmapOffset);
+		Result.Pixels = Pixels;
+		Result.Height = Header->Height;
+		Result.Width = Header->Width;
+	}
+
+	return Result;
 }
 
 void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory)
@@ -73,10 +132,13 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	GameState *State = reinterpret_cast<GameState*>(Memory->PermanentStorage);
 	if (!Memory->bIsInitialized)
 	{
+		State->Background = LoadBMP("assets/testImage.bmp");
+		State->Player = LoadBMP("assets/Player.bmp");
+
 		State->PlayerPosition.AbsTileX = 1;
 		State->PlayerPosition.AbsTileY = 1;
-		State->PlayerPosition.TileRelX = 5.f;
-		State->PlayerPosition.TileRelY = 5.f;
+		State->PlayerPosition.OffsetX = 5.f;
+		State->PlayerPosition.OffsetY = 5.f;
 
 		InitializeArena(&State->WorldArena, Memory->PermanentStorageSize - sizeof(GameState), 
 			reinterpret_cast<UINT8 *>(Memory->PermanentStorage) + sizeof(GameState));
@@ -109,6 +171,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		bool bDoorBottom = false;
 		bool bDoorUp = false;
 		bool bDoorDown = false;
+		bool bSwitchedFloor = false;
 
 		for (UINT32 ScreenIndex = 0; ScreenIndex < 20; ++ScreenIndex)
 		{
@@ -123,6 +186,18 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 			else
 				RandomChoice = rand() % 3;
 
+			if (bSwitchedFloor)
+			{
+				bDoorUp = !bDoorUp;
+				bDoorDown = !bDoorDown;
+				bSwitchedFloor = false;
+			}
+			else
+			{
+				bDoorUp = false;
+				bDoorDown = false;
+			}
+
 			if (RandomChoice == 2)
 			{
 				if (AbsTileZ == 0)
@@ -135,11 +210,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 					bDoorDown = true;
 					bDoorUp = false;
 				}
-			}
-			else
-			{
-				bDoorUp = false;
-				bDoorDown = false;
+				bSwitchedFloor = true;
 			}
 
 			if (RandomChoice == 1)
@@ -209,7 +280,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		Memory->bIsInitialized = true;
 	}
 
-	const UINT32 TileSideInPixels = 10;
+	const UINT32 TileSideInPixels = 30;
 	const float MetersToPixels = static_cast<float>(TileSideInPixels) / State->World->TileMap->TileSideInMeters;
 	const float PlayerWidth = State->World->TileMap->TileSideInMeters * 0.65f;
 	const float PlayerHeight = State->World->TileMap->TileSideInMeters * 0.65f;
@@ -241,26 +312,34 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	}
 
 	TileMap_Position NewPlayerPosition = State->PlayerPosition;
-	NewPlayerPosition.TileRelX += dPlayerX * Input->TimeElapsingOverFrame;
-	NewPlayerPosition.TileRelY += dPlayerY * Input->TimeElapsingOverFrame;
+	NewPlayerPosition.OffsetX += dPlayerX * Input->TimeElapsingOverFrame;
+	NewPlayerPosition.OffsetY += dPlayerY * Input->TimeElapsingOverFrame;
 	NewPlayerPosition = CanonicalizePosition(State->World->TileMap, NewPlayerPosition);
 
 	TileMap_Position NewPosLeft = NewPlayerPosition;
-	NewPosLeft.TileRelX -= PlayerWidth / 2;
+	NewPosLeft.OffsetX -= PlayerWidth / 2;
 	NewPosLeft = CanonicalizePosition(State->World->TileMap, NewPosLeft);
 
 	TileMap_Position NewPosRight = NewPlayerPosition;
-	NewPosRight.TileRelX += PlayerWidth / 2;
+	NewPosRight.OffsetX += PlayerWidth / 2;
 	NewPosRight = CanonicalizePosition(State->World->TileMap, NewPosRight);
 
-	if (WorldIsEmptyAtPosition(State->World->TileMap, NewPosLeft) &&
-		WorldIsEmptyAtPosition(State->World->TileMap, NewPosRight) &&
-		WorldIsEmptyAtPosition(State->World->TileMap, NewPlayerPosition))
+	if (WorldIsEmptyAtPosition(State->World->TileMap, &NewPosLeft) &&
+		WorldIsEmptyAtPosition(State->World->TileMap, &NewPosRight) &&
+		WorldIsEmptyAtPosition(State->World->TileMap, &NewPlayerPosition))
 	{
+		if ( !PositionsAreOnTheSameTile(&State->PlayerPosition, &NewPlayerPosition) )
+		{
+			UINT32 TileValue = GetTileValue(State->World->TileMap, &NewPlayerPosition);
+			if (TileValue == 3)
+				++NewPlayerPosition.AbsTileZ;
+			else if (TileValue == 4)
+				--NewPlayerPosition.AbsTileZ;
+		}
 		State->PlayerPosition = NewPlayerPosition;
 	}
 
-	DrawRectangle(Buffer, 0, 0, static_cast<float>(Buffer->BitmapWidth), static_cast<float>(Buffer->BitmapHeight), 1, 0, 1);
+	DrawBitmap(Buffer, &State->Background, 0, 0);
 
 	for (INT32 RelRow = -100; RelRow < 100; ++RelRow)
 	{
@@ -270,15 +349,15 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 			UINT32 Row = State->PlayerPosition.AbsTileY + RelRow;
 
 			UINT32 TileID = GetTileValue(State->World->TileMap, Column, Row, State->PlayerPosition.AbsTileZ);
-			if (TileID > 0)
+			if (TileID > 1)
 			{
 				float Color = TileID == 2 ? 1.f : 0.5f;
 				if (TileID > 2)
 					Color = 0.25f;
 				if (Row == State->PlayerPosition.AbsTileY && Column == State->PlayerPosition.AbsTileX)
 					Color = 0.f;
-				float CenterX = 0.5f * Buffer->BitmapWidth - MetersToPixels * State->PlayerPosition.TileRelX + static_cast<float>(RelColumn) * TileSideInPixels;
-				float CenterY = 0.5f * Buffer->BitmapHeight + MetersToPixels * State->PlayerPosition.TileRelY - static_cast<float>(RelRow) * TileSideInPixels;
+				float CenterX = 0.5f * Buffer->BitmapWidth - MetersToPixels * State->PlayerPosition.OffsetX + static_cast<float>(RelColumn) * TileSideInPixels;
+				float CenterY = 0.5f * Buffer->BitmapHeight + MetersToPixels * State->PlayerPosition.OffsetY - static_cast<float>(RelRow) * TileSideInPixels;
 				float MinX = CenterX - TileSideInPixels / 2;
 				float MinY = CenterY - TileSideInPixels / 2;
 				float MaxX = CenterX + TileSideInPixels / 2;
@@ -288,12 +367,9 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		}
 	}
 
-	float PlayerR = 1.0f;
-	float PlayerG = 1.0f;
-	float PlayerB = 0.0f;
 	float PlayerLeft = 0.5f * Buffer->BitmapWidth - 0.5f * PlayerWidth * MetersToPixels;
 	float PlayerTop = 0.5f * Buffer->BitmapHeight - PlayerHeight * MetersToPixels;
-	DrawRectangle(Buffer, PlayerLeft, PlayerTop, PlayerLeft + PlayerWidth * MetersToPixels, PlayerTop + PlayerHeight * MetersToPixels, PlayerR, PlayerG, PlayerB);
+	DrawBitmap(Buffer, &State->Player, PlayerLeft, PlayerTop);
 }
 
 void GameGetSoundSamples(/*ThreadContext *Thread,*/ SoundBuffer *SBuffer/*, GameMemory *Memory*/)
