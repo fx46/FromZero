@@ -38,11 +38,13 @@ struct TileMap_Position
 	UINT32 AbsTileY;
 	UINT32 AbsTileZ;
 
-	float TileRelX;
-	float TileRelY;
+	float OffsetX;
+	float OffsetY;
 };
 
-bool WorldIsEmptyAtPosition(Tile_Map *TileMap, TileMap_Position Pos);
+bool WorldIsEmptyAtPosition(Tile_Map *TileMap, TileMap_Position *Pos);
 void SetTileValue(Memory_Arena *Arena, Tile_Map *TileMap, UINT32 AbsTileX, UINT32 AbsTileY, UINT32 AbsTileZ, UINT32 TileValue);
 TileMap_Position CanonicalizePosition(Tile_Map *TileMap, TileMap_Position Pos);
+UINT32 GetTileValue(Tile_Map *TileMap, TileMap_Position *Position);
 UINT32 GetTileValue(Tile_Map *TileMap, UINT32 AbsTileX, UINT32 AbsTileY, UINT32 AbsTileZ);
+bool PositionsAreOnTheSameTile(TileMap_Position *Position1, TileMap_Position *Position2);
