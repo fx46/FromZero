@@ -1,4 +1,25 @@
 #include "FromZero_intrinsics.h"
+#include "FromZero_Platform.h"
+
+Bit_Scan_Result FindLeastSignificantSetBit(UINT32 Value)
+{
+	Bit_Scan_Result Result = {};
+
+#if COMPILER_MSVC
+	Result.Found = _BitScanForward(reinterpret_cast<unsigned long *>(&Result.Index), Value);
+#else // COMPILER_MSVC
+	for (UINT32 i = 0; i < sizeof(Value) * CHAR_BIT; ++i)
+	{
+		if (Value & (1 << i))
+		{
+			Result.Found = true;
+			Result.Index = i;
+			break;
+		}
+	}
+#endif
+	return Result;
+}
 
 INT32 RoundFloatToINT32(float Real32)
 {

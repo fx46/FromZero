@@ -108,29 +108,6 @@ static void DrawRectangle(PixelBuffer *Buffer, float MinXfloat, float MinYfloat,
 	}
 }
 
-struct Bit_Scan_Result
-{
-	bool Found;
-	UINT32 Index;
-};
-
-Bit_Scan_Result FindLeastSignificantSetBit(UINT32 Value)
-{
-	Bit_Scan_Result Result = {};
-
-	for (UINT32 i = 0; i < 32; ++i)
-	{
-		if (Value & (1 << i))
-		{
-			Result.Found = true;
-			Result.Index = i;
-			break;
-		}
-	}
-
-	return Result;
-}
-
 static Bitmap LoadBMP(const char *FileName)
 {
 	Bitmap Result = {};

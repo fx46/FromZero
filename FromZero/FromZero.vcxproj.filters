@@ -47,5 +47,8 @@
     <ClInclude Include="MemoryArena.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FromZero_Platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
