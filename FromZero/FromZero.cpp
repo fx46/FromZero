@@ -32,13 +32,17 @@ static void DrawBitmap(PixelBuffer *Buffer, Bitmap *Bmap, float RealX, float Rea
 	INT32 MaxX = RoundFloatToINT32(RealX + static_cast<float>(Bmap->Width));
 	INT32 MaxY = RoundFloatToINT32(RealY + static_cast<float>(Bmap->Height));
 
+	int SourceOffsetX = 0;
 	if (MinX < 0)
 	{
+		SourceOffsetX = -MinX;
 		MinX = 0;
 	}
 
+	int SourceOffsetY = 0;
 	if (MinY < 0)
 	{
+		SourceOffsetY = -MinY;
 		MinY = 0;
 	}
 
@@ -53,6 +57,7 @@ static void DrawBitmap(PixelBuffer *Buffer, Bitmap *Bmap, float RealX, float Rea
 	}
 
 	UINT32 *SourceRow = Bmap->Pixels + Bmap->Width * (Bmap->Height - 1);
+	SourceRow += -SourceOffsetY * Bmap->Width + SourceOffsetX;
 	UINT8 *DestRow = reinterpret_cast<UINT8 *>(Buffer->BitmapMemory) + MinX * Buffer->BytesPerPixel + MinY * Buffer->Pitch;
 	for (INT32 Y = MinY; Y < MaxY; ++Y)
 	{
