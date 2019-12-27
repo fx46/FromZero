@@ -58,11 +58,19 @@ static void DrawBitmap(PixelBuffer *Buffer, Bitmap *Bmap, float RealX, float Rea
 		UINT32 *Source = SourceRow;
 		for (INT32 X = MinX; X < MaxX; ++X)
 		{
-			if ((*Source >> 24) > 128)
-			{
-				*Dest = *Source;
-			}
-			++Dest;
+			float A = static_cast<float>((*Source >> 24) & 0xFF) / 255.0f;
+			float SourceR = static_cast<float>((*Source >> 16) & 0xFF);
+			float SourceG = static_cast<float>((*Source >> 8) & 0xFF);
+			float SourceB = static_cast<float>((*Source) & 0xFF);
+			float DestR = static_cast<float>((*Dest >> 16) & 0xFF);
+			float DestG = static_cast<float>((*Dest >> 8) & 0xFF);
+			float DestB = static_cast<float>((*Dest) & 0xFF);
+
+			float R = (1.0f - A) * DestR + A * SourceR;
+			float G = (1.0f - A) * DestG + A * SourceG;
+			float B = (1.0f - A) * DestB + A * SourceB;
+
+			*Dest++ = (static_cast<UINT32>(R + 0.5f) << 16 | static_cast<UINT32>(G + 0.5f) << 8 | static_cast<UINT32>(B + 0.5f));
 			++Source;
 		}
 		DestRow += Buffer->Pitch;
