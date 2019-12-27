@@ -23,7 +23,7 @@ static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 	}
 }
 
-static void DrawBitmap(PixelBuffer *Buffer, Bitmap *Bmap, float RealX, float RealY)
+static void DrawBitmap(PixelBuffer *Buffer, Bitmap *Bmap, float RealX, float RealY, int AlignX = 0, int AlignY = 0)
 {
 	INT32 MinX = RoundFloatToINT32(RealX);
 	INT32 MinY = RoundFloatToINT32(RealY);
@@ -133,8 +133,9 @@ static Bitmap LoadBMP(const char *FileName)
 		Result.Pixels = Pixels;
 		Result.Height = Header->Height;
 		Result.Width = Header->Width;
-		UINT32 AlphaMask = ~(Header->RedMask | Header->GreenMask | Header->BlueMask);
+		assert(Header->Compression == 3);
 
+		UINT32 AlphaMask = ~(Header->RedMask | Header->GreenMask | Header->BlueMask);
 		Bit_Scan_Result RedShift   = FindLeastSignificantSetBit(Header->RedMask);
 		Bit_Scan_Result GreenShift = FindLeastSignificantSetBit(Header->GreenMask);
 		Bit_Scan_Result BlueShift  = FindLeastSignificantSetBit(Header->BlueMask);
@@ -405,7 +406,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 
 	float PlayerLeft = 0.5f * Buffer->BitmapWidth - 0.5f * PlayerWidth * MetersToPixels;
 	float PlayerTop = 0.5f * Buffer->BitmapHeight - PlayerHeight * MetersToPixels;
-	DrawBitmap(Buffer, &State->Player, PlayerLeft, PlayerTop);
+	DrawBitmap(Buffer, &State->Player, 0.5f * Buffer->BitmapWidth, 0.5f * Buffer->BitmapHeight, 30 / 2, 50);
 }
 
 void GameGetSoundSamples(/*ThreadContext *Thread,*/ SoundBuffer *SBuffer/*, GameMemory *Memory*/)
