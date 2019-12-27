@@ -169,17 +169,15 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	assert(sizeof(GameState) <= Memory->PermanentStorageSize);
 
 	GameState *State = reinterpret_cast<GameState*>(Memory->PermanentStorage);
+	UINT32 TilesPerWidth = 17;
+	UINT32 TilesPerHeight = 9;
+
 	if (!Memory->bIsInitialized)
 	{
 		State->Background = LoadBMP("assets/testImage.bmp");
 		State->Player = LoadBMP("assets/Player.bmp");
-
-		UINT32 TilesPerWidth = 17;
-		UINT32 TilesPerHeight = 9;
-
 		State->CameraPosition.AbsTileX = TilesPerWidth / 2;
 		State->CameraPosition.AbsTileY = TilesPerHeight / 2;
-
 		State->PlayerPosition.AbsTileX = 1;
 		State->PlayerPosition.AbsTileY = 1;
 		State->PlayerPosition.OffsetX = 5.f;
@@ -384,7 +382,18 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		State->PlayerPosition = NewPlayerPosition;
 	}
 
+	TileMap_Difference PlayerPosToCam = Substract(State->World->TileMap, &State->PlayerPosition, &State->CameraPosition);
+	float PlayerX = 0.5f * Buffer->BitmapWidth + PlayerPosToCam.dX * MetersToPixels;
+	float PlayerY = 0.5f * Buffer->BitmapHeight - PlayerPosToCam.dY * MetersToPixels;
 	State->CameraPosition.AbsTileZ = State->PlayerPosition.AbsTileZ;
+	if (PlayerPosToCam.dX > (static_cast<float>(1 + TilesPerWidth / 2) * State->World->TileMap->TileSideInMeters))
+		State->CameraPosition.AbsTileX += TilesPerWidth;
+	else if (PlayerPosToCam.dX < (-static_cast<float>(1 + TilesPerWidth / 2) * State->World->TileMap->TileSideInMeters))
+		State->CameraPosition.AbsTileX -= TilesPerWidth;
+	if (PlayerPosToCam.dY > (static_cast<float>(1 + TilesPerHeight / 2) * State->World->TileMap->TileSideInMeters))
+		State->CameraPosition.AbsTileY += TilesPerHeight;
+	else if (PlayerPosToCam.dY < (-static_cast<float>(1 + TilesPerHeight / 2) * State->World->TileMap->TileSideInMeters))
+		State->CameraPosition.AbsTileY -= TilesPerHeight;
 
 	for (INT32 RelRow = -10; RelRow < 10; ++RelRow)
 	{
@@ -411,10 +420,6 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 			}
 		}
 	}
-
-	TileMap_Difference PlayerPosToCam = Substract(State->World->TileMap, &State->PlayerPosition, &State->CameraPosition);
-	float PlayerX = 0.5f * Buffer->BitmapWidth + PlayerPosToCam.dX * MetersToPixels;
-	float PlayerY = 0.5f * Buffer->BitmapHeight - PlayerPosToCam.dY * MetersToPixels;
 
 	DrawBitmap(Buffer, &State->Player, PlayerX, PlayerY, 30.0f / 2.0f, 50.0f);
 }
