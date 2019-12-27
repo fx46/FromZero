@@ -174,6 +174,12 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		State->Background = LoadBMP("assets/testImage.bmp");
 		State->Player = LoadBMP("assets/Player.bmp");
 
+		UINT32 TilesPerWidth = 17;
+		UINT32 TilesPerHeight = 9;
+
+		State->CameraPosition.AbsTileX = TilesPerWidth / 2;
+		State->CameraPosition.AbsTileY = TilesPerHeight / 2;
+
 		State->PlayerPosition.AbsTileX = 1;
 		State->PlayerPosition.AbsTileY = 1;
 		State->PlayerPosition.OffsetX = 5.f;
@@ -199,8 +205,6 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 														State->World->TileMap->TileChunkCountZ));
 		State->World->TileMap->TileSideInMeters = 1.4f;
 
-		UINT32 TilesPerWidth = 17;
-		UINT32 TilesPerHeight = 9;
 		UINT32 ScreenX = 0;
 		UINT32 ScreenY = 0;
 		UINT32 AbsTileZ = 0;
@@ -319,7 +323,9 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		Memory->bIsInitialized = true;
 	}
 
-	const UINT32 TileSideInPixels = 30;
+	DrawBitmap(Buffer, &State->Background, 0, 0);
+
+	const UINT32 TileSideInPixels = 60;
 	const float MetersToPixels = static_cast<float>(TileSideInPixels) / State->World->TileMap->TileSideInMeters;
 	const float PlayerWidth = State->World->TileMap->TileSideInMeters * 0.65f;
 	const float PlayerHeight = State->World->TileMap->TileSideInMeters * 0.65f;
@@ -378,25 +384,25 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		State->PlayerPosition = NewPlayerPosition;
 	}
 
-	DrawBitmap(Buffer, &State->Background, 0, 0);
+	State->CameraPosition.AbsTileZ = State->PlayerPosition.AbsTileZ;
 
-	for (INT32 RelRow = -100; RelRow < 100; ++RelRow)
+	for (INT32 RelRow = -10; RelRow < 10; ++RelRow)
 	{
-		for (INT32 RelColumn = -100; RelColumn < 100; ++RelColumn)
+		for (INT32 RelColumn = -20; RelColumn < 20; ++RelColumn)
 		{
-			UINT32 Column = State->PlayerPosition.AbsTileX + RelColumn;
-			UINT32 Row = State->PlayerPosition.AbsTileY + RelRow;
+			UINT32 Column = State->CameraPosition.AbsTileX + RelColumn;
+			UINT32 Row = State->CameraPosition.AbsTileY + RelRow;
 
-			UINT32 TileID = GetTileValue(State->World->TileMap, Column, Row, State->PlayerPosition.AbsTileZ);
+			UINT32 TileID = GetTileValue(State->World->TileMap, Column, Row, State->CameraPosition.AbsTileZ);
 			if (TileID > 1)
 			{
 				float Color = TileID == 2 ? 1.f : 0.5f;
 				if (TileID > 2)
 					Color = 0.25f;
-				if (Row == State->PlayerPosition.AbsTileY && Column == State->PlayerPosition.AbsTileX)
+				if (Row == State->CameraPosition.AbsTileY && Column == State->CameraPosition.AbsTileX)
 					Color = 0.f;
-				float CenterX = 0.5f * Buffer->BitmapWidth - MetersToPixels * State->PlayerPosition.OffsetX + static_cast<float>(RelColumn) * TileSideInPixels;
-				float CenterY = 0.5f * Buffer->BitmapHeight + MetersToPixels * State->PlayerPosition.OffsetY - static_cast<float>(RelRow) * TileSideInPixels;
+				float CenterX = 0.5f * Buffer->BitmapWidth - MetersToPixels * State->CameraPosition.OffsetX + static_cast<float>(RelColumn) * TileSideInPixels;
+				float CenterY = 0.5f * Buffer->BitmapHeight + MetersToPixels * State->CameraPosition.OffsetY - static_cast<float>(RelRow) * TileSideInPixels;
 				float MinX = CenterX - TileSideInPixels / 2;
 				float MinY = CenterY - TileSideInPixels / 2;
 				float MaxX = CenterX + TileSideInPixels / 2;
@@ -406,7 +412,11 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		}
 	}
 
-	DrawBitmap(Buffer, &State->Player, 0.5f * Buffer->BitmapWidth, 0.5f * Buffer->BitmapHeight, 30.0f / 2.0f, 50.0f);
+	TileMap_Difference PlayerPosToCam = Substract(State->World->TileMap, &State->PlayerPosition, &State->CameraPosition);
+	float PlayerX = 0.5f * Buffer->BitmapWidth + PlayerPosToCam.dX * MetersToPixels;
+	float PlayerY = 0.5f * Buffer->BitmapHeight - PlayerPosToCam.dY * MetersToPixels;
+
+	DrawBitmap(Buffer, &State->Player, PlayerX, PlayerY, 30.0f / 2.0f, 50.0f);
 }
 
 void GameGetSoundSamples(/*ThreadContext *Thread,*/ SoundBuffer *SBuffer/*, GameMemory *Memory*/)

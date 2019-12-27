@@ -30,6 +30,13 @@ struct Tile_Map
 	float TileSideInMeters;
 };
 
+struct TileMap_Difference
+{
+	float dX;
+	float dY;
+	float dZ;
+};
+
 struct TileMap_Position
 {
 	// Fixed point tile locations, the high bits are the tile chunk index, 
@@ -48,3 +55,4 @@ TileMap_Position CanonicalizePosition(Tile_Map *TileMap, TileMap_Position Pos);
 UINT32 GetTileValue(Tile_Map *TileMap, TileMap_Position *Position);
 UINT32 GetTileValue(Tile_Map *TileMap, UINT32 AbsTileX, UINT32 AbsTileY, UINT32 AbsTileZ);
 bool PositionsAreOnTheSameTile(TileMap_Position *Position1, TileMap_Position *Position2);
+TileMap_Difference Substract(Tile_Map *TileMap, TileMap_Position *A, TileMap_Position *B);

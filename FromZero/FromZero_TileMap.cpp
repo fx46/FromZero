@@ -132,3 +132,13 @@ bool PositionsAreOnTheSameTile(TileMap_Position *Position1, TileMap_Position *Po
 {
 	return Position1->AbsTileX == Position2->AbsTileX && Position1->AbsTileY == Position2->AbsTileY && Position1->AbsTileZ == Position2->AbsTileZ;
 }
+
+TileMap_Difference Substract(Tile_Map *TileMap, TileMap_Position *A, TileMap_Position *B)
+{
+	TileMap_Difference Result;
+	Result.dX = TileMap->TileSideInMeters * (static_cast<float>(A->AbsTileX) - static_cast<float>(B->AbsTileX)) + (A->OffsetX - B->OffsetX);
+	Result.dY = TileMap->TileSideInMeters * (static_cast<float>(A->AbsTileY) - static_cast<float>(B->AbsTileY)) + (A->OffsetY - B->OffsetY);
+	Result.dZ = TileMap->TileSideInMeters * (static_cast<float>(A->AbsTileZ) - static_cast<float>(B->AbsTileZ));
+
+	return Result;
+}

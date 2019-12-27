@@ -72,6 +72,7 @@ struct GameState
 	World_Map *World;
 	Memory_Arena WorldArena;
 	TileMap_Position PlayerPosition;
+	TileMap_Position CameraPosition;
 	Bitmap Background;
 	Bitmap Player;
 };
