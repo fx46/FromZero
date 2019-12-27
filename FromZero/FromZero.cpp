@@ -108,6 +108,29 @@ static void DrawRectangle(PixelBuffer *Buffer, float MinXfloat, float MinYfloat,
 	}
 }
 
+struct Bit_Scan_Result
+{
+	bool Found;
+	UINT32 Index;
+};
+
+Bit_Scan_Result FindLeastSignificantSetBit(UINT32 Value)
+{
+	Bit_Scan_Result Result = {};
+
+	for (UINT32 i = 0; i < 32; ++i)
+	{
+		if (Value & (1 << i))
+		{
+			Result.Found = true;
+			Result.Index = i;
+			break;
+		}
+	}
+
+	return Result;
+}
+
 static Bitmap LoadBMP(const char *FileName)
 {
 	Bitmap Result = {};
@@ -120,13 +143,27 @@ static Bitmap LoadBMP(const char *FileName)
 		Result.Pixels = Pixels;
 		Result.Height = Header->Height;
 		Result.Width = Header->Width;
+		UINT32 AlphaMask = ~(Header->RedMask | Header->GreenMask | Header->BlueMask);
+
+		Bit_Scan_Result RedShift   = FindLeastSignificantSetBit(Header->RedMask);
+		Bit_Scan_Result GreenShift = FindLeastSignificantSetBit(Header->GreenMask);
+		Bit_Scan_Result BlueShift  = FindLeastSignificantSetBit(Header->BlueMask);
+		Bit_Scan_Result AlphaShift = FindLeastSignificantSetBit(AlphaMask);
+
+		assert(RedShift.Found);
+		assert(GreenShift.Found);
+		assert(BlueShift.Found);
+		assert(AlphaShift.Found);
 
 		UINT32 *SourceDest = Pixels;
 		for (int Y = 0; Y < Header->Height; ++Y)
 		{
 			for (int X = 0; X < Header->Width; X++)
 			{
-				*SourceDest++ = (*SourceDest & Header->RedMask) << 16 | (*SourceDest & Header->GreenMask << 8) | (*SourceDest & Header->BlueMask);
+				*SourceDest++ = (*SourceDest >> AlphaShift.Index & 0xFF) << 24 |
+					(*SourceDest >> RedShift.Index				 & 0xFF) << 16 |
+					(*SourceDest >> GreenShift.Index			 & 0xFF) << 8  |
+					(*SourceDest >> BlueShift.Index				 & 0xFF);
 			}
 		}
 	}
