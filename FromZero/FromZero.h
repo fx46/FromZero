@@ -111,7 +111,6 @@ inline UINT32 SafeTruncateUINT64(UINT64 Value)
 	return static_cast<UINT32>(Value);
 }
 
-#if DEBUG
 struct ReadFileResults
 {
 	void *Contents;
@@ -121,4 +120,3 @@ struct ReadFileResults
 ReadFileResults ReadFile(/*ThreadContext *Thread,*/ const char *Filename);
 void FreeFileMemory(/*ThreadContext *Thread,*/ void *Memory);
 bool WriteFile(/*ThreadContext *Thread,*/ const char *Filename, UINT32 MemorySize, void *Memory);
-#endif
