@@ -23,8 +23,10 @@ static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 	}
 }
 
-static void DrawBitmap(PixelBuffer *Buffer, Bitmap *Bmap, float RealX, float RealY, int AlignX = 0, int AlignY = 0)
+static void DrawBitmap(PixelBuffer *Buffer, Bitmap *Bmap, float RealX, float RealY, float AlignX = 0, float AlignY = 0)
 {
+	RealX -= AlignX;
+	RealY -= AlignY;
 	INT32 MinX = RoundFloatToINT32(RealX);
 	INT32 MinY = RoundFloatToINT32(RealY);
 	INT32 MaxX = RoundFloatToINT32(RealX + static_cast<float>(Bmap->Width));
@@ -404,9 +406,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		}
 	}
 
-	float PlayerLeft = 0.5f * Buffer->BitmapWidth - 0.5f * PlayerWidth * MetersToPixels;
-	float PlayerTop = 0.5f * Buffer->BitmapHeight - PlayerHeight * MetersToPixels;
-	DrawBitmap(Buffer, &State->Player, 0.5f * Buffer->BitmapWidth, 0.5f * Buffer->BitmapHeight, 30 / 2, 50);
+	DrawBitmap(Buffer, &State->Player, 0.5f * Buffer->BitmapWidth, 0.5f * Buffer->BitmapHeight, 30.0f / 2.0f, 50.0f);
 }
 
 void GameGetSoundSamples(/*ThreadContext *Thread,*/ SoundBuffer *SBuffer/*, GameMemory *Memory*/)
