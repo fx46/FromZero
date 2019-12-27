@@ -58,7 +58,12 @@ static void DrawBitmap(PixelBuffer *Buffer, Bitmap *Bmap, float RealX, float Rea
 		UINT32 *Source = SourceRow;
 		for (INT32 X = MinX; X < MaxX; ++X)
 		{
-			*Dest++ = *Source++;
+			if ((*Source >> 24) > 128)
+			{
+				*Dest = *Source;
+			}
+			++Dest;
+			++Source;
 		}
 		DestRow += Buffer->Pitch;
 		SourceRow -= Bmap->Width;
