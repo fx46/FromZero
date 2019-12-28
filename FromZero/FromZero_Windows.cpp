@@ -128,6 +128,15 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 			OutputDebugStringA("WM_CLOSE\n");
 		} break;
 
+		case WM_SETCURSOR:
+		{
+#if !DEBUG
+			SetCursor(0);
+#else
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+#endif
+		} break;
+
 		case WM_PAINT:
 		{
 			PAINTSTRUCT P;
@@ -383,6 +392,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 	WindowClass.style = CS_HREDRAW|CS_VREDRAW;
 	WindowClass.lpfnWndProc = MainWindowCallback;
 	WindowClass.hInstance = Instance;
+	WindowClass.hCursor = LoadCursor(0, IDC_ARROW);
 	WindowClass.lpszClassName = "FromZeroWindowClass"; 
 
 #define FramesOfAudioLatency 3

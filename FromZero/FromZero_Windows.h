@@ -6,7 +6,6 @@
 struct SoundOutput
 {
 	UINT32 RunningSampleIndex = 0;
-	float TSine;
 	int SamplesPerSecond = 48000;
 	int BytesPerSample = sizeof(INT16) * 2;
 	int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;	//buffer size for 1 second
