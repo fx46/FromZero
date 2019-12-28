@@ -94,16 +94,28 @@ static void ResizeDIBSection(WindowsPixelBuffer *Buffer, int Width, int Height)
 
 static void DisplayBufferToWindow(WindowsPixelBuffer *Buffer, WindowDimension Dimension, HDC DeviceContext)
 {
-	const int XOffSet = 10;
-	const int YOffSet = 10;
+	if ((Dimension.Width >= Buffer->BitmapWidth * 2) &&
+		(Dimension.Height >= Buffer->BitmapHeight * 2))
+	{
+		StretchDIBits(DeviceContext, 0, 0, Buffer->BitmapWidth * 2, Buffer->BitmapHeight * 2,
+			0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, Buffer->BitmapMemory,
+			&Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+	}
+	else
+	{
+		const int XOffSet = 10;
+		const int YOffSet = 10;
 
-	//Clear unused buffer pixels to black
-	PatBlt(DeviceContext, 0, 0, Dimension.Width, YOffSet, BLACKNESS);
-	PatBlt(DeviceContext, 0, YOffSet + Buffer->BitmapHeight, Dimension.Width, Dimension.Height, BLACKNESS);
-	PatBlt(DeviceContext, 0, 0, XOffSet, Dimension.Height, BLACKNESS);
-	PatBlt(DeviceContext, XOffSet + Buffer->BitmapWidth, 0, Dimension.Width, Dimension.Height, BLACKNESS);
+		//Clear unused buffer pixels to black
+		PatBlt(DeviceContext, 0, 0, Dimension.Width, YOffSet, BLACKNESS);
+		PatBlt(DeviceContext, 0, YOffSet + Buffer->BitmapHeight, Dimension.Width, Dimension.Height, BLACKNESS);
+		PatBlt(DeviceContext, 0, 0, XOffSet, Dimension.Height, BLACKNESS);
+		PatBlt(DeviceContext, XOffSet + Buffer->BitmapWidth, 0, Dimension.Width, Dimension.Height, BLACKNESS);
 
-	StretchDIBits(DeviceContext, XOffSet, YOffSet, Buffer->BitmapWidth, Buffer->BitmapHeight, 0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, Buffer->BitmapMemory, &Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+		StretchDIBits(DeviceContext, XOffSet, YOffSet, Buffer->BitmapWidth, Buffer->BitmapHeight, 
+						0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, Buffer->BitmapMemory, 
+						&Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+	}
 }
 
 static void ToggleFullScreen(HWND Window)
@@ -370,6 +382,78 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 		{
 			/*Sent after a window has been moved.*/
 			OutputDebugStringA("WM_MOVE received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_KILLFOCUS:
+		{
+			/*Sent to a window immediately before it loses the keyboard focus.*/
+			OutputDebugStringA("WM_KILLFOCUS received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_NCHITTEST:
+		{
+			/*Sent to a window in order to determine what part of the window corresponds to a particular screen coordinate.*/
+			OutputDebugStringA("WM_NCHITTEST received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_MOUSEMOVE:
+		{
+			/*Posted to a window when the cursor moves.*/
+			OutputDebugStringA("WM_MOUSEMOVE received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_NCMOUSEMOVE:
+		{
+			/*Posted to a window when the cursor is moved within the non client area of the window.*/
+			OutputDebugStringA("WM_NCMOUSEMOVE received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_MOUSEACTIVATE:
+		{
+			/*Sent when the cursor is in an inactive window and the user presses a mouse button.*/
+			OutputDebugStringA("WM_MOUSEACTIVATE received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_NCMOUSELEAVE:
+		{
+			/*Posted to a window when the cursor leaves the non client area of the window specified 
+			in a prior call to TrackMouseEvent.*/
+			OutputDebugStringA("WM_NCMOUSELEAVE received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_STYLECHANGING:
+		{
+			/*Sent to a window when the SetWindowLong function is about to change one or more of 
+			the window's styles.*/
+			OutputDebugStringA("WM_STYLECHANGING received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_STYLECHANGED:
+		{
+			/*Sent to a window after the SetWindowLong function has changed one or more of the window's styles.*/
+			OutputDebugStringA("WM_STYLECHANGED received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case 799:
+		{
+			/*TODO: Find out what this is*/
+			OutputDebugStringA("799 received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case 49372:
+		{
+			/*TODO: Find out what this is*/
+			OutputDebugStringA("49372 received.\n");
 			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
 		} break;
 
