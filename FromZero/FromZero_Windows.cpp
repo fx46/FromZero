@@ -9,6 +9,7 @@ static LPDIRECTSOUNDBUFFER SecondaryBuffer;
 static SoundOutput SoundConfig;
 static GameInput Input = {};
 static bool bRunning = true;
+static WINDOWPLACEMENT WindowPosition = { sizeof(WindowPosition) };
 
 typedef HRESULT WINAPI direct_sound_create(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter);	//declaring function signature as a type
 
@@ -103,6 +104,28 @@ static void DisplayBufferToWindow(WindowsPixelBuffer *Buffer, WindowDimension Di
 	PatBlt(DeviceContext, XOffSet + Buffer->BitmapWidth, 0, Dimension.Width, Dimension.Height, BLACKNESS);
 
 	StretchDIBits(DeviceContext, XOffSet, YOffSet, Buffer->BitmapWidth, Buffer->BitmapHeight, 0, 0, Buffer->BitmapWidth, Buffer->BitmapHeight, Buffer->BitmapMemory, &Buffer->BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+}
+
+static void ToggleFullScreen(HWND Window)
+{	// From Raymond Chen https://devblogs.microsoft.com/oldnewthing/?p=14353
+	DWORD Style = GetWindowLong(Window, GWL_STYLE);
+	if (Style & WS_OVERLAPPEDWINDOW) {
+		MONITORINFO MonitorInfo = { sizeof(MonitorInfo) };
+		if (GetWindowPlacement(Window, &WindowPosition) && GetMonitorInfo(MonitorFromWindow(Window, MONITOR_DEFAULTTOPRIMARY), &MonitorInfo))
+		{
+			SetWindowLong(Window, GWL_STYLE, Style & ~WS_OVERLAPPEDWINDOW);
+			SetWindowPos(Window, HWND_TOP,
+				MonitorInfo.rcMonitor.left, MonitorInfo.rcMonitor.top,
+				MonitorInfo.rcMonitor.right - MonitorInfo.rcMonitor.left,
+				MonitorInfo.rcMonitor.bottom - MonitorInfo.rcMonitor.top,
+				SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+		}
+	}
+	else {
+		SetWindowLong(Window, GWL_STYLE, Style | WS_OVERLAPPEDWINDOW);
+		SetWindowPlacement(Window, &WindowPosition);
+		SetWindowPos(Window, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+	}
 }
 
 static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPARAM WParam, LPARAM LParam)
@@ -209,15 +232,150 @@ static LRESULT CALLBACK MainWindowCallback(HWND WindowHandle, UINT Message, WPAR
 			}
 
 			bool AltKeyWasDown = LParam & (1 << 29);
-			if ((VKCode == VK_F4) && AltKeyWasDown)
+			if ((VKCode == VK_F4) && AltKeyWasDown && IsDown)
 			{
 				bRunning = false;
 			}
+			else if ((VKCode == VK_RETURN) && AltKeyWasDown && IsDown)
+			{
+				ToggleFullScreen(WindowHandle);
+			}
+		} break;
+
+		case WM_GETMINMAXINFO:
+		{
+			/*Sent to a window when the size or position of the window is about to change.
+			An application can use this message to override the window's default maximized 
+			size and position, or its default minimum or maximum tracking size.*/
+			OutputDebugStringA("WM_GETMINMAXINFO received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_NCCREATE:
+		{
+			/*Sent prior to the WM_CREATE message when a window is first created.*/
+			OutputDebugStringA("WM_NCCREATE received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_NCCALCSIZE:
+		{
+			/*Sent when the size and position of a window's client area must be calculated.
+			By processing this message, an application can control the content of the 
+			window's client area when the size or position of the window changes.*/
+			OutputDebugStringA("WM_NCCALCSIZE received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_CREATE:
+		{
+			/*Sent when an application requests that a window be created by calling the
+			CreateWindowEx or CreateWindow function. (The message is sent before the function 
+			returns.) The window procedure of the new window receives this message after the 
+			window is created, but before the window becomes visible.*/
+			OutputDebugStringA("WM_CREATE received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_SHOWWINDOW:
+		{
+			/*Sent to a window when the window is about to be hidden or shown.*/
+			OutputDebugStringA("WM_SHOWWINDOW received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_WINDOWPOSCHANGING:
+		{
+			/*Sent to a window whose size, position, or place in the Z order is about to change 
+			as a result of a call to the SetWindowPos function or another window-management function.*/
+			OutputDebugStringA("WM_WINDOWPOSCHANGING received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_ACTIVATEAPP:
+		{
+			/*Sent when a window belonging to a different application than the active window is 
+			about to be activated. The message is sent to the application whose window is being 
+			activated and to the application whose window is being deactivated.*/
+			OutputDebugStringA("WM_ACTIVATEAPP received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_NCACTIVATE:
+		{
+			/*Sent to a window when its non client area needs to be changed to indicate an active 
+			or inactive state.*/
+			OutputDebugStringA("WM_NCACTIVATE received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_GETICON:
+		{
+			/*Sent to a window to retrieve a handle to the large or small icon associated with a window.*/
+			OutputDebugStringA("WM_GETICON received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_ACTIVATE:
+		{
+			/*Sent to both the window being activated and the window being deactivated.*/
+			OutputDebugStringA("WM_ACTIVATE received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_IME_SETCONTEXT:
+		{
+			/*Sent to an application when a window is activated.*/
+			OutputDebugStringA("WM_IME_SETCONTEXT received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_IME_NOTIFY:
+		{
+			/*Sent to an application to notify it of changes to the IME window.*/
+			OutputDebugStringA("WM_IME_NOTIFY received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_SETFOCUS:
+		{
+			/*Sent to a window after it has gained the keyboard focus.*/
+			OutputDebugStringA("WM_SETFOCUS received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_NCPAINT:
+		{
+			/*Sent to a window when its frame must be painted.*/
+			OutputDebugStringA("WM_NCPAINT received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_ERASEBKGND:
+		{
+			/*Sent when the window background must be erased (for example, when a window is resized).*/
+			OutputDebugStringA("WM_ERASEBKGND received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_WINDOWPOSCHANGED:
+		{
+			/*Sent to a window whose size, position, or place in the Z order has changed as a result 
+			of a call to the SetWindowPos function or another window-management function.*/
+			OutputDebugStringA("WM_WINDOWPOSCHANGED received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
+		} break;
+
+		case WM_MOVE:
+		{
+			/*Sent after a window has been moved.*/
+			OutputDebugStringA("WM_MOVE received.\n");
+			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
 		} break;
 
 		default:
 		{
-			//OutputDebugStringA("Default message received.\n");
+			OutputDebugStringA("Default message received.\n");
 			Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
 		} break;
 	}
