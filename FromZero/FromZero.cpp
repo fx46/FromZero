@@ -359,6 +359,12 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		dPlayerY -= PlayerSpeed;
 	}
 
+	if ((dPlayerX != 0.f) && (dPlayerY != 0.f))
+	{
+		dPlayerX *= 0.707106781187f;
+		dPlayerY *= 0.707106781187f;
+	}
+
 	TileMap_Position NewPlayerPosition = State->PlayerPosition;
 	NewPlayerPosition.OffsetX += dPlayerX * Input->TimeElapsingOverFrame;
 	NewPlayerPosition.OffsetY += dPlayerY * Input->TimeElapsingOverFrame;
