@@ -32,6 +32,7 @@
     <ClInclude Include="FromZero_TileMap.h" />
     <ClInclude Include="FromZero_Windows.h" />
     <ClInclude Include="MemoryArena.h" />
+    <ClInclude Include="Vector.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
