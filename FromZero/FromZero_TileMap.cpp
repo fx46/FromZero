@@ -80,8 +80,8 @@ static Tile_Chunk_Position GetChunkPositionFor(Tile_Map *TileMap, UINT32 AbsTile
 
 TileMap_Position CanonicalizePosition(Tile_Map *TileMap, TileMap_Position Pos)
 {
-	CanonicalizeCoord(TileMap, &Pos.AbsTileX, &Pos.OffsetX);
-	CanonicalizeCoord(TileMap, &Pos.AbsTileY, &Pos.OffsetY);
+	CanonicalizeCoord(TileMap, &Pos.AbsTileX, &Pos.Offset.X);
+	CanonicalizeCoord(TileMap, &Pos.AbsTileY, &Pos.Offset.Y);
 
 	return Pos;
 }
@@ -136,8 +136,9 @@ bool PositionsAreOnTheSameTile(TileMap_Position *Position1, TileMap_Position *Po
 TileMap_Difference Substract(Tile_Map *TileMap, TileMap_Position *A, TileMap_Position *B)
 {
 	TileMap_Difference Result;
-	Result.dX = TileMap->TileSideInMeters * (static_cast<float>(A->AbsTileX) - static_cast<float>(B->AbsTileX)) + (A->OffsetX - B->OffsetX);
-	Result.dY = TileMap->TileSideInMeters * (static_cast<float>(A->AbsTileY) - static_cast<float>(B->AbsTileY)) + (A->OffsetY - B->OffsetY);
+
+	Vector dTileXY = {static_cast<float>(A->AbsTileX) - static_cast<float>(B->AbsTileX), static_cast<float>(A->AbsTileY) - static_cast<float>(B->AbsTileY)};
+	Result.dXY = dTileXY * TileMap->TileSideInMeters + (A->Offset - B->Offset);
 	Result.dZ = TileMap->TileSideInMeters * (static_cast<float>(A->AbsTileZ) - static_cast<float>(B->AbsTileZ));
 
 	return Result;

@@ -2,6 +2,7 @@
 
 #include <windows.h>
 #include "MemoryArena.h"
+#include "Vector.h"
 
 struct Tile_Chunk_Position
 {
@@ -32,8 +33,7 @@ struct Tile_Map
 
 struct TileMap_Difference
 {
-	float dX;
-	float dY;
+	Vector dXY;
 	float dZ;
 };
 
@@ -45,8 +45,7 @@ struct TileMap_Position
 	UINT32 AbsTileY;
 	UINT32 AbsTileZ;
 
-	float OffsetX;
-	float OffsetY;
+	Vector Offset;
 };
 
 bool WorldIsEmptyAtPosition(Tile_Map *TileMap, TileMap_Position *Pos);

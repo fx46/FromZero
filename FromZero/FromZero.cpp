@@ -1,4 +1,5 @@
 #include "FromZero.h"
+#include "Vector.h"
 
 static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 {
@@ -85,12 +86,12 @@ static void DrawBitmap(PixelBuffer *Buffer, Bitmap *Bmap, float RealX, float Rea
 	}
 }
 
-static void DrawRectangle(PixelBuffer *Buffer, float MinXfloat, float MinYfloat, float MaxXfloat,  float MaxYfloat, float R, float G, float B)
+static void DrawRectangle(PixelBuffer *Buffer, Vector Min, Vector Max, float R, float G, float B)
 {
-	INT32 MinX = RoundFloatToINT32(MinXfloat);
-	INT32 MaxX = RoundFloatToINT32(MaxXfloat);
-	INT32 MinY = RoundFloatToINT32(MinYfloat);
-	INT32 MaxY = RoundFloatToINT32(MaxYfloat);
+	INT32 MinX = RoundFloatToINT32(Min.X);
+	INT32 MaxX = RoundFloatToINT32(Max.X);
+	INT32 MinY = RoundFloatToINT32(Min.Y);
+	INT32 MaxY = RoundFloatToINT32(Max.Y);
 
 	if (MinX < 0)
 	{
@@ -185,8 +186,8 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		State->CameraPosition.AbsTileY = TilesPerHeight / 2;
 		State->PlayerPosition.AbsTileX = 1;
 		State->PlayerPosition.AbsTileY = 1;
-		State->PlayerPosition.OffsetX = 5.f;
-		State->PlayerPosition.OffsetY = 5.f;
+		State->PlayerPosition.Offset.X = 5.f;
+		State->PlayerPosition.Offset.Y = 5.f;
 
 		InitializeArena(&State->WorldArena, Memory->PermanentStorageSize - sizeof(GameState), 
 			reinterpret_cast<UINT8 *>(Memory->PermanentStorage) + sizeof(GameState));
@@ -333,8 +334,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	const float PlayerWidth = State->World->TileMap->TileSideInMeters * 0.65f;
 	const float PlayerHeight = State->World->TileMap->TileSideInMeters * 0.65f;
 
-	float dPlayerX = 0.0f;
-	float dPlayerY = 0.0f;
+	Vector dPlayer = {};
 	float PlayerSpeed = 6.0f;
 	static TileMap_Position testPos;
 
@@ -344,38 +344,36 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	}
 	if (Input->A)
 	{
-		dPlayerX -= PlayerSpeed;
+		dPlayer.X -= PlayerSpeed;
 	}
 	if (Input->D)
 	{
-		dPlayerX += PlayerSpeed;
+		dPlayer.X += PlayerSpeed;
 	}
 	if (Input->W)
 	{
-		dPlayerY += PlayerSpeed;
+		dPlayer.Y += PlayerSpeed;
 	}
 	if (Input->S)
 	{
-		dPlayerY -= PlayerSpeed;
+		dPlayer.Y -= PlayerSpeed;
 	}
 
-	if ((dPlayerX != 0.f) && (dPlayerY != 0.f))
+	if ((dPlayer.X != 0.f) && (dPlayer.Y != 0.f))
 	{
-		dPlayerX *= 0.707106781187f;
-		dPlayerY *= 0.707106781187f;
+		dPlayer *= 0.707106781187f;
 	}
 
 	TileMap_Position NewPlayerPosition = State->PlayerPosition;
-	NewPlayerPosition.OffsetX += dPlayerX * Input->TimeElapsingOverFrame;
-	NewPlayerPosition.OffsetY += dPlayerY * Input->TimeElapsingOverFrame;
+	NewPlayerPosition.Offset += dPlayer * Input->TimeElapsingOverFrame;
 	NewPlayerPosition = CanonicalizePosition(State->World->TileMap, NewPlayerPosition);
 
 	TileMap_Position NewPosLeft = NewPlayerPosition;
-	NewPosLeft.OffsetX -= PlayerWidth / 2;
+	NewPosLeft.Offset.X -= PlayerWidth / 2;
 	NewPosLeft = CanonicalizePosition(State->World->TileMap, NewPosLeft);
 
 	TileMap_Position NewPosRight = NewPlayerPosition;
-	NewPosRight.OffsetX += PlayerWidth / 2;
+	NewPosRight.Offset.X += PlayerWidth / 2;
 	NewPosRight = CanonicalizePosition(State->World->TileMap, NewPosRight);
 
 	if (WorldIsEmptyAtPosition(State->World->TileMap, &NewPosLeft) &&
@@ -394,16 +392,16 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	}
 
 	TileMap_Difference PlayerPosToCam = Substract(State->World->TileMap, &State->PlayerPosition, &State->CameraPosition);
-	float PlayerX = 0.5f * Buffer->BitmapWidth + PlayerPosToCam.dX * MetersToPixels;
-	float PlayerY = 0.5f * Buffer->BitmapHeight - PlayerPosToCam.dY * MetersToPixels;
+	float PlayerX = 0.5f * Buffer->BitmapWidth + PlayerPosToCam.dXY.X * MetersToPixels;
+	float PlayerY = 0.5f * Buffer->BitmapHeight - PlayerPosToCam.dXY.Y * MetersToPixels;
 	State->CameraPosition.AbsTileZ = State->PlayerPosition.AbsTileZ;
-	if (PlayerPosToCam.dX > (static_cast<float>(1 + TilesPerWidth / 2) * State->World->TileMap->TileSideInMeters))
+	if (PlayerPosToCam.dXY.X > (static_cast<float>(1 + TilesPerWidth / 2) * State->World->TileMap->TileSideInMeters))
 		State->CameraPosition.AbsTileX += TilesPerWidth;
-	else if (PlayerPosToCam.dX < (-static_cast<float>(1 + TilesPerWidth / 2) * State->World->TileMap->TileSideInMeters))
+	else if (PlayerPosToCam.dXY.X < (-static_cast<float>(1 + TilesPerWidth / 2) * State->World->TileMap->TileSideInMeters))
 		State->CameraPosition.AbsTileX -= TilesPerWidth;
-	if (PlayerPosToCam.dY > (static_cast<float>(1 + TilesPerHeight / 2) * State->World->TileMap->TileSideInMeters))
+	if (PlayerPosToCam.dXY.Y > (static_cast<float>(1 + TilesPerHeight / 2) * State->World->TileMap->TileSideInMeters))
 		State->CameraPosition.AbsTileY += TilesPerHeight;
-	else if (PlayerPosToCam.dY < (-static_cast<float>(1 + TilesPerHeight / 2) * State->World->TileMap->TileSideInMeters))
+	else if (PlayerPosToCam.dXY.Y < (-static_cast<float>(1 + TilesPerHeight / 2) * State->World->TileMap->TileSideInMeters))
 		State->CameraPosition.AbsTileY -= TilesPerHeight;
 
 	for (INT32 RelRow = -10; RelRow < 10; ++RelRow)
@@ -421,13 +419,13 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 					Color = 0.25f;
 				if (Row == State->CameraPosition.AbsTileY && Column == State->CameraPosition.AbsTileX)
 					Color = 0.f;
-				float CenterX = 0.5f * Buffer->BitmapWidth - MetersToPixels * State->CameraPosition.OffsetX + static_cast<float>(RelColumn) * TileSideInPixels;
-				float CenterY = 0.5f * Buffer->BitmapHeight + MetersToPixels * State->CameraPosition.OffsetY - static_cast<float>(RelRow) * TileSideInPixels;
-				float MinX = CenterX - TileSideInPixels / 2;
-				float MinY = CenterY - TileSideInPixels / 2;
-				float MaxX = CenterX + TileSideInPixels / 2;
-				float MaxY = CenterY + TileSideInPixels / 2;
-				DrawRectangle(Buffer, MinX, MinY, MaxX, MaxY, Color, Color, Color);
+
+				Vector Center = { 0.5f * Buffer->BitmapWidth - MetersToPixels * State->CameraPosition.Offset.X + static_cast<float>(RelColumn) * TileSideInPixels,
+								  0.5f * Buffer->BitmapHeight + MetersToPixels * State->CameraPosition.Offset.Y - static_cast<float>(RelRow) * TileSideInPixels };
+				Vector TileSide = { TileSideInPixels / 2 , TileSideInPixels / 2 };
+				Vector Min = Center - TileSide;
+				Vector Max = Center + TileSide;
+				DrawRectangle(Buffer, Min, Max, Color, Color, Color);
 			}
 		}
 	}
