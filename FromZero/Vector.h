@@ -52,4 +52,10 @@ struct Vector
 		X += V.X;
 		Y += V.Y;
 	}
+
+	void operator-=(Vector V)
+	{
+		X -= V.X;
+		Y -= V.Y;
+	}
 };

@@ -2,6 +2,7 @@
 
 #include "FromZero_TileMap.h"
 #include "FromZero_intrinsics.h"
+#include "Vector.h"
 
 typedef signed char         INT8;
 typedef signed short        INT16;
@@ -74,7 +75,8 @@ struct GameState
 	TileMap_Position PlayerPosition;
 	TileMap_Position CameraPosition;
 	Bitmap Background;
-	Bitmap Player;
+	Bitmap PlayerSprite;
+	Vector PlayerVelocity;
 };
 
 #pragma pack(push, 1)

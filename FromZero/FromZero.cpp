@@ -1,5 +1,4 @@
 #include "FromZero.h"
-#include "Vector.h"
 
 static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 {
@@ -181,7 +180,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	if (!Memory->bIsInitialized)
 	{
 		State->Background = LoadBMP("assets/testImage.bmp");
-		State->Player = LoadBMP("assets/Player.bmp");
+		State->PlayerSprite = LoadBMP("assets/Player.bmp");
 		State->CameraPosition.AbsTileX = TilesPerWidth / 2;
 		State->CameraPosition.AbsTileY = TilesPerHeight / 2;
 		State->PlayerPosition.AbsTileX = 1;
@@ -334,38 +333,44 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	const float PlayerWidth = State->World->TileMap->TileSideInMeters * 0.65f;
 	const float PlayerHeight = State->World->TileMap->TileSideInMeters * 0.65f;
 
-	Vector dPlayer = {};
-	float PlayerSpeed = 6.0f;
+	Vector PlayerAcceleration = {};
 	static TileMap_Position testPos;
 
-	if (Input->Shift)
-	{
-		PlayerSpeed *= 10.f;
-	}
 	if (Input->A)
 	{
-		dPlayer.X -= PlayerSpeed;
+		PlayerAcceleration.X = -1.0f;
 	}
 	if (Input->D)
 	{
-		dPlayer.X += PlayerSpeed;
+		PlayerAcceleration.X = 1.0f;
 	}
 	if (Input->W)
 	{
-		dPlayer.Y += PlayerSpeed;
+		PlayerAcceleration.Y = 1.0f;
 	}
 	if (Input->S)
 	{
-		dPlayer.Y -= PlayerSpeed;
+		PlayerAcceleration.Y = -1.0f;
 	}
 
-	if ((dPlayer.X != 0.f) && (dPlayer.Y != 0.f))
+	if ((PlayerAcceleration.X != 0.f) && (PlayerAcceleration.Y != 0.f))
 	{
-		dPlayer *= 0.707106781187f;
+		PlayerAcceleration *= 0.707106781187f;
 	}
+
+	float PlayerSpeed = 40.0f;
+	if (Input->Shift)
+	{
+		PlayerSpeed *= 5.f;
+	}
+	PlayerAcceleration *= PlayerSpeed;
+	PlayerAcceleration -= State->PlayerVelocity * 5.f;
 
 	TileMap_Position NewPlayerPosition = State->PlayerPosition;
-	NewPlayerPosition.Offset += dPlayer * Input->TimeElapsingOverFrame;
+	NewPlayerPosition.Offset = PlayerAcceleration * 0.5f * Input->TimeElapsingOverFrame * Input->TimeElapsingOverFrame
+								+ State->PlayerVelocity * Input->TimeElapsingOverFrame + NewPlayerPosition.Offset;
+	State->PlayerVelocity = PlayerAcceleration * Input->TimeElapsingOverFrame + State->PlayerVelocity;
+	
 	NewPlayerPosition = CanonicalizePosition(State->World->TileMap, NewPlayerPosition);
 
 	TileMap_Position NewPosLeft = NewPlayerPosition;
@@ -430,7 +435,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		}
 	}
 
-	DrawBitmap(Buffer, &State->Player, PlayerX, PlayerY, 30.0f / 2.0f, 50.0f);
+	DrawBitmap(Buffer, &State->PlayerSprite, PlayerX, PlayerY, 30.0f / 2.0f, 50.0f);
 }
 
 void GameGetSoundSamples(/*ThreadContext *Thread,*/ SoundBuffer *SBuffer/*, GameMemory *Memory*/)
