@@ -24,6 +24,7 @@
     <ClCompile Include="FromZero_TileMap.cpp" />
     <ClCompile Include="FromZero_Windows.cpp" />
     <ClCompile Include="MemoryArena.cpp" />
+    <ClCompile Include="Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FromZero.h" />

@@ -364,7 +364,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		PlayerSpeed *= 5.f;
 	}
 	PlayerAcceleration *= PlayerSpeed;
-	PlayerAcceleration -= State->PlayerVelocity * 5.f;
+	PlayerAcceleration += State->PlayerVelocity * -5.f;
 
 	TileMap_Position NewPlayerPosition = State->PlayerPosition;
 	NewPlayerPosition.Offset = PlayerAcceleration * 0.5f * Input->TimeElapsingOverFrame * Input->TimeElapsingOverFrame
@@ -381,11 +381,49 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	NewPosRight.Offset.X += PlayerWidth / 2;
 	NewPosRight = CanonicalizePosition(State->World->TileMap, NewPosRight);
 
-	if (WorldIsEmptyAtPosition(State->World->TileMap, &NewPosLeft) &&
-		WorldIsEmptyAtPosition(State->World->TileMap, &NewPosRight) &&
-		WorldIsEmptyAtPosition(State->World->TileMap, &NewPlayerPosition))
+	bool Collided = false;
+	TileMap_Position CollisionPosition = {};
+	if (!WorldIsEmptyAtPosition(State->World->TileMap, &NewPlayerPosition))
 	{
-		if ( !PositionsAreOnTheSameTile(&State->PlayerPosition, &NewPlayerPosition) )
+		CollisionPosition = NewPlayerPosition;
+		Collided = true;
+	}
+	if (!WorldIsEmptyAtPosition(State->World->TileMap, &NewPosLeft))
+	{
+		CollisionPosition = NewPosLeft;
+		Collided = true;
+	}
+	if (!WorldIsEmptyAtPosition(State->World->TileMap, &NewPosRight))
+	{
+		CollisionPosition = NewPosRight;
+		Collided = true;
+	}
+
+	if (Collided)
+	{
+		Vector Normal = { 0, 0 };
+		if (CollisionPosition.AbsTileX < State->PlayerPosition.AbsTileX)
+		{
+			Normal = { 1, 0 };
+		}
+		if (CollisionPosition.AbsTileX > State->PlayerPosition.AbsTileX)
+		{
+			Normal = { -1, 0 };
+		}
+		if (CollisionPosition.AbsTileY < State->PlayerPosition.AbsTileY)
+		{
+			Normal = { 0, 1 };
+		}
+		if (CollisionPosition.AbsTileY > State->PlayerPosition.AbsTileY)
+		{
+			Normal = { 0, -1 };
+		}
+
+		State->PlayerVelocity -= Normal * Dot(State->PlayerVelocity, Normal) * 2;
+	}
+	else
+	{
+		if (!PositionsAreOnTheSameTile(&State->PlayerPosition, &NewPlayerPosition))
 		{
 			UINT32 TileValue = GetTileValue(State->World->TileMap, &NewPlayerPosition);
 			if (TileValue == 3)

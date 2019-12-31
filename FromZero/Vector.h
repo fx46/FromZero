@@ -59,3 +59,5 @@ struct Vector
 		Y -= V.Y;
 	}
 };
+
+float Dot(Vector V1, Vector V2);
