@@ -7,8 +7,8 @@ static void CanonicalizeCoord(Tile_Map *TileMap, UINT32 *Tile, float *TileRel)
 	*Tile += Offset;
 	*TileRel -= Offset * TileMap->TileSideInMeters;
 
-	assert(*TileRel >= -TileMap->TileSideInMeters / 2);
-	assert(*TileRel <= TileMap->TileSideInMeters / 2);
+	assert(*TileRel > -0.5001f * TileMap->TileSideInMeters);
+	assert(*TileRel <  0.5001f * TileMap->TileSideInMeters);
 }
 
 static Tile_Chunk * GetTileChunk(Tile_Map *TileMap, UINT32 TileChunkX, UINT32 TileChunkY, UINT32 TileChunkZ)
@@ -80,10 +80,12 @@ static Tile_Chunk_Position GetChunkPositionFor(Tile_Map *TileMap, UINT32 AbsTile
 
 TileMap_Position CanonicalizePosition(Tile_Map *TileMap, TileMap_Position Pos)
 {
-	CanonicalizeCoord(TileMap, &Pos.AbsTileX, &Pos.Offset.X);
-	CanonicalizeCoord(TileMap, &Pos.AbsTileY, &Pos.Offset.Y);
+	TileMap_Position Result = Pos;
 
-	return Pos;
+	CanonicalizeCoord(TileMap, &Result.AbsTileX, &Result.Offset.X);
+	CanonicalizeCoord(TileMap, &Result.AbsTileY, &Result.Offset.Y);
+
+	return Result;
 }
 
 UINT32 GetTileValue(Tile_Map *TileMap, TileMap_Position *Position)
@@ -142,4 +144,10 @@ TileMap_Difference Substract(Tile_Map *TileMap, TileMap_Position *A, TileMap_Pos
 	Result.dZ = TileMap->TileSideInMeters * (static_cast<float>(A->AbsTileZ) - static_cast<float>(B->AbsTileZ));
 
 	return Result;
+}
+
+TileMap_Position Offset(Tile_Map *TileMap, TileMap_Position P, Vector Offset)
+{
+	P.Offset += Offset;
+	return CanonicalizePosition(TileMap, P);
 }
