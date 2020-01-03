@@ -5,6 +5,9 @@ struct Vector
 	float X, Y;
 	float &operator[](int Index) { return((&X)[Index]); }
 
+	Vector(float X, float Y) : X(X), Y(Y) {	}
+	Vector() : X(0.f), Y(0.f) {	}
+
 	Vector operator-()
 	{
 		Vector Result;
@@ -32,21 +35,6 @@ struct Vector
 		return Result;
 	}
 
-	Vector operator*(float F)
-	{
-		Vector Result;
-		Result.X = F * X;
-		Result.Y = F * Y;
-
-		return Result;
-	}
-
-	void operator*=(float F)
-	{
-		X *= F;
-		Y *= F;
-	}
-
 	void operator+=(Vector V)
 	{
 		X += V.X;
@@ -58,6 +46,22 @@ struct Vector
 		X -= V.X;
 		Y -= V.Y;
 	}
+
+	void operator*=(float F)
+	{
+		X *= F;
+		Y *= F;
+	}
+
+	void operator/=(float F)
+	{
+		X /= F;
+		Y /= F;
+	}
 };
 
+Vector operator* (const float F, const Vector& V);
+Vector operator* (const Vector& V, const float F);
 float Dot(Vector V1, Vector V2);
+float NormSq(Vector V);
+float Norm(Vector V);
