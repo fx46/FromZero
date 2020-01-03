@@ -143,30 +143,48 @@ static Bitmap LoadBMP(const char *FileName)
 		assert(Header->Compression == 3);
 
 		UINT32 AlphaMask = ~(Header->RedMask | Header->GreenMask | Header->BlueMask);
-		Bit_Scan_Result RedShift   = FindLeastSignificantSetBit(Header->RedMask);
-		Bit_Scan_Result GreenShift = FindLeastSignificantSetBit(Header->GreenMask);
-		Bit_Scan_Result BlueShift  = FindLeastSignificantSetBit(Header->BlueMask);
-		Bit_Scan_Result AlphaShift = FindLeastSignificantSetBit(AlphaMask);
 
-		assert(RedShift.Found);
-		assert(GreenShift.Found);
-		assert(BlueShift.Found);
-		assert(AlphaShift.Found);
+		Bit_Scan_Result RedScan   = FindLeastSignificantSetBit(Header->RedMask);
+		Bit_Scan_Result GreenScan = FindLeastSignificantSetBit(Header->GreenMask);
+		Bit_Scan_Result BlueScan  = FindLeastSignificantSetBit(Header->BlueMask);
+		Bit_Scan_Result AlphaScan = FindLeastSignificantSetBit(AlphaMask);
+
+		assert(RedScan.Found);
+		assert(GreenScan.Found);
+		assert(BlueScan.Found);
+		assert(AlphaScan.Found);
 
 		UINT32 *SourceDest = Pixels;
 		for (int Y = 0; Y < Header->Height; ++Y)
 		{
 			for (int X = 0; X < Header->Width; X++)
 			{
-				*SourceDest++ = (*SourceDest >> AlphaShift.Index & 0xFF) << 24 |
-					(*SourceDest >> RedShift.Index				 & 0xFF) << 16 |
-					(*SourceDest >> GreenShift.Index			 & 0xFF) << 8  |
-					(*SourceDest >> BlueShift.Index				 & 0xFF);
+				*SourceDest++ = (_rotl(*SourceDest & Header->RedMask,	16 - static_cast<int>(RedScan.Index))   |
+								 _rotl(*SourceDest & Header->GreenMask, 8  - static_cast<int>(GreenScan.Index)) |
+								 _rotl(*SourceDest & Header->BlueMask,	0  - static_cast<int>(BlueScan.Index))  |
+								 _rotl(*SourceDest & AlphaMask,			24 - static_cast<int>(AlphaScan.Index)));
 			}
 		}
 	}
 
 	return Result;
+}
+
+static void TestWall(float WallX, float PlayerDeltaX, float PlayerDeltaY, float RelX, float RelY, float *MinT, float MinY, float MaxY)
+{
+	float Epsilon = 0.0001f;
+	if (PlayerDeltaX != 0.f)
+	{
+		float TResult = (WallX - RelX) / PlayerDeltaX;
+		float Y = RelY + TResult * PlayerDeltaY;
+		if ((TResult >= 0.f) && (*MinT > TResult))
+		{
+			if ((Y >= MinY) && (Y <= MaxY))
+			{
+				*MinT = ((TResult - Epsilon) > 0.0f) ? (TResult - Epsilon) : 0.0f;
+			}
+		}
+	}
 }
 
 void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory)
@@ -184,9 +202,9 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		State->CameraPosition.AbsTileX = TilesPerWidth / 2;
 		State->CameraPosition.AbsTileY = TilesPerHeight / 2;
 		State->PlayerPosition.AbsTileX = 1;
-		State->PlayerPosition.AbsTileY = 1;
-		State->PlayerPosition.Offset.X = 5.f;
-		State->PlayerPosition.Offset.Y = 5.f;
+		State->PlayerPosition.AbsTileY = 3;
+		State->PlayerPosition.Offset.X = 0.f;
+		State->PlayerPosition.Offset.Y = 0.f;
 
 		InitializeArena(&State->WorldArena, Memory->PermanentStorageSize - sizeof(GameState), 
 			reinterpret_cast<UINT8 *>(Memory->PermanentStorage) + sizeof(GameState));
@@ -326,13 +344,10 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		Memory->bIsInitialized = true;
 	}
 
-	DrawBitmap(Buffer, &State->Background, 0, 0);
-
 	const UINT32 TileSideInPixels = 60;
 	const float MetersToPixels = static_cast<float>(TileSideInPixels) / State->World->TileMap->TileSideInMeters;
 	const float PlayerWidth = State->World->TileMap->TileSideInMeters * 0.65f;
 	const float PlayerHeight = State->World->TileMap->TileSideInMeters * 0.65f;
-
 	Vector PlayerAcceleration = {};
 	static TileMap_Position testPos;
 
@@ -353,85 +368,78 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		PlayerAcceleration.Y = -1.0f;
 	}
 
-	if ((PlayerAcceleration.X != 0.f) && (PlayerAcceleration.Y != 0.f))
+	if (NormSq(PlayerAcceleration) > 1.0f)
 	{
-		PlayerAcceleration *= 0.707106781187f;
+		PlayerAcceleration /= Norm(PlayerAcceleration);
 	}
 
-	float PlayerSpeed = 40.0f;
+	float PlayerSpeed = 50.0f;
 	if (Input->Shift)
 	{
 		PlayerSpeed *= 5.f;
 	}
 	PlayerAcceleration *= PlayerSpeed;
-	PlayerAcceleration += State->PlayerVelocity * -5.f;
+	PlayerAcceleration += State->PlayerVelocity * -8.f;
 
-	TileMap_Position NewPlayerPosition = State->PlayerPosition;
-	NewPlayerPosition.Offset = PlayerAcceleration * 0.5f * Input->TimeElapsingOverFrame * Input->TimeElapsingOverFrame
-								+ State->PlayerVelocity * Input->TimeElapsingOverFrame + NewPlayerPosition.Offset;
+	TileMap_Position OldPlayerPosition = State->PlayerPosition;
+	Vector PlayerDelta = PlayerAcceleration * 0.5f * Input->TimeElapsingOverFrame * Input->TimeElapsingOverFrame
+		+ State->PlayerVelocity * Input->TimeElapsingOverFrame;
 	State->PlayerVelocity = PlayerAcceleration * Input->TimeElapsingOverFrame + State->PlayerVelocity;
-	
-	NewPlayerPosition = CanonicalizePosition(State->World->TileMap, NewPlayerPosition);
+	TileMap_Position NewPlayerPosition = Offset(State->World->TileMap, OldPlayerPosition, PlayerDelta);
 
-	TileMap_Position NewPosLeft = NewPlayerPosition;
-	NewPosLeft.Offset.X -= PlayerWidth / 2;
-	NewPosLeft = CanonicalizePosition(State->World->TileMap, NewPosLeft);
+	UINT32 StartTileX = OldPlayerPosition.AbsTileX;
+	UINT32 StartTileY = OldPlayerPosition.AbsTileY;
+	UINT32 EndTileX = NewPlayerPosition.AbsTileX;
+	UINT32 EndTileY = NewPlayerPosition.AbsTileY;
 
-	TileMap_Position NewPosRight = NewPlayerPosition;
-	NewPosRight.Offset.X += PlayerWidth / 2;
-	NewPosRight = CanonicalizePosition(State->World->TileMap, NewPosRight);
+	int DeltaX = SignOf(EndTileX - StartTileX);
+	int DeltaY = SignOf(EndTileY - StartTileY);
 
-	bool Collided = false;
-	TileMap_Position CollisionPosition = {};
-	if (!WorldIsEmptyAtPosition(State->World->TileMap, &NewPlayerPosition))
+	UINT32 AbsTileZ = State->PlayerPosition.AbsTileZ;
+	float MinT = 1.f;
+
+	UINT32 AbsTileY = StartTileY;
+	for(;;)
 	{
-		CollisionPosition = NewPlayerPosition;
-		Collided = true;
+		UINT32 AbsTileX = StartTileX;
+		for (;;)
+		{
+			TileMap_Position TestTilePosition = { AbsTileX , AbsTileY, AbsTileZ };
+			if (!WorldIsEmptyAtPosition(State->World->TileMap, &TestTilePosition))
+			{
+				Vector MinCorner = Vector(State->World->TileMap->TileSideInMeters, State->World->TileMap->TileSideInMeters) * -.5f;
+				Vector MaxCorner = Vector(State->World->TileMap->TileSideInMeters, State->World->TileMap->TileSideInMeters) *  .5f;
+
+				TileMap_Difference RelOldPlayerPosition = Substract(State->World->TileMap, &OldPlayerPosition, &TestTilePosition);
+				Vector Rel = RelOldPlayerPosition.dXY;
+
+				TestWall(MinCorner.X, PlayerDelta.X, PlayerDelta.Y, Rel.X, Rel.Y, &MinT, MinCorner.Y, MaxCorner.Y);
+				TestWall(MaxCorner.X, PlayerDelta.X, PlayerDelta.Y, Rel.X, Rel.Y, &MinT, MinCorner.Y, MaxCorner.Y);
+				TestWall(MinCorner.Y, PlayerDelta.Y, PlayerDelta.X, Rel.Y, Rel.X, &MinT, MinCorner.X, MaxCorner.X);
+				TestWall(MaxCorner.Y, PlayerDelta.Y, PlayerDelta.X, Rel.Y, Rel.X, &MinT, MinCorner.X, MaxCorner.X);
+			}
+
+			if (AbsTileX == EndTileX)
+				break;
+			else
+				AbsTileX += DeltaX;
+		}
+
+		if (AbsTileY == EndTileY)
+			break;
+		else
+			AbsTileY += DeltaY;
 	}
-	if (!WorldIsEmptyAtPosition(State->World->TileMap, &NewPosLeft))
-	{
-		CollisionPosition = NewPosLeft;
-		Collided = true;
-	}
-	if (!WorldIsEmptyAtPosition(State->World->TileMap, &NewPosRight))
-	{
-		CollisionPosition = NewPosRight;
-		Collided = true;
-	}
 
-	if (Collided)
-	{
-		Vector Normal = { 0, 0 };
-		if (CollisionPosition.AbsTileX < State->PlayerPosition.AbsTileX)
-		{
-			Normal = { 1, 0 };
-		}
-		if (CollisionPosition.AbsTileX > State->PlayerPosition.AbsTileX)
-		{
-			Normal = { -1, 0 };
-		}
-		if (CollisionPosition.AbsTileY < State->PlayerPosition.AbsTileY)
-		{
-			Normal = { 0, 1 };
-		}
-		if (CollisionPosition.AbsTileY > State->PlayerPosition.AbsTileY)
-		{
-			Normal = { 0, -1 };
-		}
+	State->PlayerPosition = Offset(State->World->TileMap, OldPlayerPosition, MinT * PlayerDelta);
 
-		State->PlayerVelocity -= Normal * Dot(State->PlayerVelocity, Normal) * 2;
-	}
-	else
+	if (!PositionsAreOnTheSameTile(&OldPlayerPosition, &State->PlayerPosition))
 	{
-		if (!PositionsAreOnTheSameTile(&State->PlayerPosition, &NewPlayerPosition))
-		{
-			UINT32 TileValue = GetTileValue(State->World->TileMap, &NewPlayerPosition);
-			if (TileValue == 3)
-				++NewPlayerPosition.AbsTileZ;
-			else if (TileValue == 4)
-				--NewPlayerPosition.AbsTileZ;
-		}
-		State->PlayerPosition = NewPlayerPosition;
+		UINT32 TileValue = GetTileValue(State->World->TileMap, &State->PlayerPosition);
+		if (TileValue == 3)
+			++State->PlayerPosition.AbsTileZ;
+		else if (TileValue == 4)
+			--State->PlayerPosition.AbsTileZ;
 	}
 
 	TileMap_Difference PlayerPosToCam = Substract(State->World->TileMap, &State->PlayerPosition, &State->CameraPosition);
@@ -447,6 +455,8 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	else if (PlayerPosToCam.dXY.Y < (-static_cast<float>(1 + TilesPerHeight / 2) * State->World->TileMap->TileSideInMeters))
 		State->CameraPosition.AbsTileY -= TilesPerHeight;
 
+	DrawBitmap(Buffer, &State->Background, 0, 0);
+	
 	for (INT32 RelRow = -10; RelRow < 10; ++RelRow)
 	{
 		for (INT32 RelColumn = -20; RelColumn < 20; ++RelColumn)
