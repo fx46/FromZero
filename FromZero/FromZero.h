@@ -4,6 +4,8 @@
 #include "FromZero_intrinsics.h"
 #include "Vector.h"
 
+#define INT32_MAX        2147483647i32
+
 typedef signed char         INT8;
 typedef signed short        INT16;
 typedef signed int          INT32;
