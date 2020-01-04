@@ -1,9 +1,8 @@
 #include "FromZero_Windows.h"
-
 #include <dsound.h>
 #include <malloc.h>
 
-static INT64 PerformanceCountFrequency;
+static int64 PerformanceCountFrequency;
 static WindowsPixelBuffer GlobalBuffer;
 static LPDIRECTSOUNDBUFFER SecondaryBuffer;
 static SoundOutput SoundConfig;
@@ -13,7 +12,7 @@ static WINDOWPLACEMENT WindowPosition = { sizeof(WindowPosition) };
 
 typedef HRESULT WINAPI direct_sound_create(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter);	//declaring function signature as a type
 
-static void InitDSound(HWND WindowHandle, UINT32 SamplesPerSecond, UINT32 BufferSize)
+static void InitDSound(HWND WindowHandle, uint32 SamplesPerSecond, uint32 BufferSize)
 {
 	if (HMODULE DSoundLibrary = LoadLibraryA("dsound.dll"))
 	{
@@ -475,12 +474,12 @@ static void WinClearSoundBuffer(SoundOutput *Sound)
 
 	if (SUCCEEDED(SecondaryBuffer->Lock(0, Sound->SecondaryBufferSize, &Region1, &Region1size, &Region2, &Region2size, 0)))
 	{
-		UINT8 *DestSample = static_cast<UINT8*>(Region1);
+		uint8 *DestSample = static_cast<uint8*>(Region1);
 		for (DWORD ByteIndex = 0; ByteIndex < Region1size; ByteIndex++)
 		{
 			*DestSample++ = 0;
 		}
-		DestSample = static_cast<UINT8*>(Region2);
+		DestSample = static_cast<uint8*>(Region2);
 		for (DWORD ByteIndex = 0; ByteIndex < Region2size; ByteIndex++)
 		{
 			*DestSample++ = 0;
@@ -500,8 +499,8 @@ static void FillSoundBuffer(SoundOutput *Sound, DWORD BytesToLock, DWORD BytesTo
 	if (SUCCEEDED(SecondaryBuffer->Lock(BytesToLock, BytesToWrite, &Region1, &Region1size, &Region2, &Region2size, 0)))
 	{
 		DWORD Region1SampleCount = Region1size / Sound->BytesPerSample;
-		INT16 *DestSample = static_cast<INT16*>(Region1);
-		INT16 *SourceSample = SBuffer->Samples;
+		int16 *DestSample = static_cast<int16*>(Region1);
+		int16 *SourceSample = SBuffer->Samples;
 		for (DWORD SampleIndex = 0; SampleIndex < Region1SampleCount; SampleIndex++)
 		{
 			*DestSample++ = *SourceSample++;
@@ -510,7 +509,7 @@ static void FillSoundBuffer(SoundOutput *Sound, DWORD BytesToLock, DWORD BytesTo
 		}
 
 		DWORD Region2SampleCount = Region2size / Sound->BytesPerSample;
-		DestSample = static_cast<INT16*>(Region2);
+		DestSample = static_cast<int16*>(Region2);
 		for (DWORD SampleIndex = 0; SampleIndex < Region2SampleCount; SampleIndex++)
 		{
 			*DestSample++ = *SourceSample++;
@@ -532,7 +531,7 @@ ReadFileResults ReadFile(/*ThreadContext *Thread,*/ const char *Filename)
 		LARGE_INTEGER FileSize;
 		if (GetFileSizeEx(FileHandle, &FileSize))
 		{
-			UINT32 FileSize32 = SafeTruncateUINT64(FileSize.QuadPart);
+			uint32 FileSize32 = SafeTruncateUINT64(FileSize.QuadPart);
 			Result.Contents = VirtualAlloc(0, FileSize32, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 			if (Result.Contents)
 			{
@@ -562,7 +561,7 @@ void FreeFileMemory(/*ThreadContext *Thread,*/ void *Memory)
 	}
 }
 
-bool WriteFile(/*ThreadContext *Thread,*/ const char *Filename, UINT32 MemorySize, void *Memory)
+bool WriteFile(/*ThreadContext *Thread,*/ const char *Filename, uint32 MemorySize, void *Memory)
 {
 	bool Result = false;
 
@@ -663,7 +662,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 
 			WindowsState State = {};
 
-			INT16 *Samples = static_cast<INT16 *>(VirtualAlloc(0, SoundConfig.SecondaryBufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
+			int16 *Samples = static_cast<int16 *>(VirtualAlloc(0, SoundConfig.SecondaryBufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
 
 #if DEBUG
 			LPVOID BaseAddress = (LPVOID)(2LL * 1024LL * 1024LL * 1024LL * 1024LL);	//2 Terra bytes
@@ -678,7 +677,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE , LPSTR, int)
 			State.TotalSize = Memory.PermanentStorageSize + Memory.TransientStorageSize;
 			State.GameMemoryBlock = VirtualAlloc(BaseAddress, static_cast<size_t>(State.TotalSize), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 			Memory.PermanentStorage = State.GameMemoryBlock;
-			Memory.TransientStorage = (static_cast<UINT8 *>(Memory.PermanentStorage) + Memory.PermanentStorageSize);
+			Memory.TransientStorage = (static_cast<uint8 *>(Memory.PermanentStorage) + Memory.PermanentStorageSize);
 
 			if (!Memory.PermanentStorage || !Samples || !Memory.TransientStorage)
 			{

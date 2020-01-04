@@ -4,17 +4,6 @@
 #include "FromZero_intrinsics.h"
 #include "Vector.h"
 
-#define INT32_MAX        2147483647i32
-
-typedef signed char         INT8;
-typedef signed short        INT16;
-typedef signed int          INT32;
-typedef signed __int64      INT64;
-typedef unsigned char       UINT8;
-typedef unsigned short      UINT16;
-typedef unsigned int        UINT32;
-typedef unsigned __int64    UINT64;
-
 struct PixelBuffer
 {
 	void *BitmapMemory;	//Pixels are 32-bits wide (BB GG RR XX)
@@ -33,7 +22,7 @@ struct SoundBuffer
 {
 	int SampleCountToOutput;
 	int SamplesPerSecond;
-	INT16 *Samples;
+	int16 *Samples;
 };
 
 struct GameInput
@@ -53,8 +42,8 @@ struct GameMemory
 {
 	void *PermanentStorage;
 	void *TransientStorage;
-	UINT64 PermanentStorageSize;
-	UINT64 TransientStorageSize;
+	uint64 PermanentStorageSize;
+	uint64 TransientStorageSize;
 	bool bIsInitialized;
 };
 
@@ -67,7 +56,7 @@ struct Bitmap
 {
 	int Width;
 	int Height;
-	UINT32 *Pixels;
+	uint32 *Pixels;
 };
 
 struct GameState
@@ -84,43 +73,43 @@ struct GameState
 #pragma pack(push, 1)
 struct Bitmap_Header
 {
-	UINT16 FileType;
-	UINT32 FileSize;
-	UINT16 Reserved1;
-	UINT16 Reserved2;
-	UINT32 BitmapOffset;
-	UINT32 Size;
-	INT32 Width;
-	INT32 Height;
-	UINT16 Planes;
-	UINT16 BitsPerPixel;
-	UINT32 Compression;
-	UINT32 SizeOfBitmap;
-	UINT32 HorzResolution;
-	UINT32 VertResolution;
-	UINT32 ColorsUsed;
-	UINT32 ColorsImportant;
-	UINT32 RedMask;
-	UINT32 GreenMask;
-	UINT32 BlueMask;
+	uint16 FileType;
+	uint32 FileSize;
+	uint16 Reserved1;
+	uint16 Reserved2;
+	uint32 BitmapOffset;
+	uint32 Size;
+	int32 Width;
+	int32 Height;
+	uint16 Planes;
+	uint16 BitsPerPixel;
+	uint32 Compression;
+	uint32 SizeOfBitmap;
+	uint32 HorzResolution;
+	uint32 VertResolution;
+	uint32 ColorsUsed;
+	uint32 ColorsImportant;
+	uint32 RedMask;
+	uint32 GreenMask;
+	uint32 BlueMask;
 };
 #pragma pack(pop)
 
 void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory);
 void GameGetSoundSamples(/*ThreadContext *Thread,*/ SoundBuffer *SBuffer/*, GameMemory *Memory*/);
 
-inline UINT32 SafeTruncateUINT64(UINT64 Value)
+inline uint32 SafeTruncateUINT64(uint64 Value)
 {
 	assert(Value <= 0xFFFFFFFF);
-	return static_cast<UINT32>(Value);
+	return static_cast<uint32>(Value);
 }
 
 struct ReadFileResults
 {
 	void *Contents;
-	UINT32 ContentsSize;
+	uint32 ContentsSize;
 };
 
 ReadFileResults ReadFile(/*ThreadContext *Thread,*/ const char *Filename);
 void FreeFileMemory(/*ThreadContext *Thread,*/ void *Memory);
-bool WriteFile(/*ThreadContext *Thread,*/ const char *Filename, UINT32 MemorySize, void *Memory);
+bool WriteFile(/*ThreadContext *Thread,*/ const char *Filename, uint32 MemorySize, void *Memory);

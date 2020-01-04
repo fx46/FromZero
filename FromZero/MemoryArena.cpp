@@ -1,7 +1,7 @@
 #include "MemoryArena.h"
 #include "FromZero_intrinsics.h"
 
-void InitializeArena(Memory_Arena *Arena, size_t Size, UINT8 *Base)
+void InitializeArena(Memory_Arena *Arena, size_t Size, uint8 *Base)
 {
 	Arena->Size = Size;
 	Arena->Base = Base;
@@ -17,7 +17,7 @@ void * PushSize(Memory_Arena *Arena, size_t Size)
 	return Result;
 }
 
-void * PushArray(Memory_Arena *Arena, size_t Size, UINT32 Count)
+void * PushArray(Memory_Arena *Arena, size_t Size, uint32 Count)
 {
 	return PushSize(Arena, Size * Count);
 }

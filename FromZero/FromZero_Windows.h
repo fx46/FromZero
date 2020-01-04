@@ -5,9 +5,9 @@
 
 struct SoundOutput
 {
-	UINT32 RunningSampleIndex = 0;
+	uint32 RunningSampleIndex = 0;
 	int SamplesPerSecond = 48000;
-	int BytesPerSample = sizeof(INT16) * 2;
+	int BytesPerSample = sizeof(int16) * 2;
 	int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;	//buffer size for 1 second
 	int SafetyBytes;
 };
@@ -42,6 +42,6 @@ struct DebugTimeMarker
 
 struct WindowsState
 {
-	UINT64 TotalSize;
+	uint64 TotalSize;
 	void *GameMemoryBlock;
 };
