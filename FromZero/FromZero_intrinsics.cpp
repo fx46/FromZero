@@ -39,6 +39,11 @@ int32 CeilFloatToINT32(float Real32)
 	return static_cast<int32>(ceilf(Real32));
 }
 
+float AbsoluteValue(float F)
+{
+	return fabs(F);
+}
+
 float Fsqrt(float F)
 {
 	return sqrtf(F);

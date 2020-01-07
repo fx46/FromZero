@@ -31,6 +31,8 @@ uint32 RoundFloatToUINT32(float Real32);
 
 int32 CeilFloatToINT32(float Real32);
 
+float AbsoluteValue(float F);
+
 float Fsqrt(float F);
 
 int SignOf(int Value);
