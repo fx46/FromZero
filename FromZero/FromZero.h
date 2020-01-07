@@ -59,15 +59,25 @@ struct Bitmap
 	uint32 *Pixels;
 };
 
+struct Entity
+{
+	TileMap_Position Position;
+	Vector Velocity;
+	float Width, Height;
+	bool Exists;
+};
+
 struct GameState
 {
 	World_Map *World;
 	Memory_Arena WorldArena;
-	TileMap_Position PlayerPosition;
 	TileMap_Position CameraPosition;
+	uint32 CameraFollowingEntityIndex;
 	Bitmap Background;
 	Bitmap PlayerSprite;
-	Vector PlayerVelocity;
+	uint32 EntityCount;
+	Entity Entities[256];
+	Entity *PlayerEntity;
 };
 
 #pragma pack(push, 1)

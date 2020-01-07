@@ -192,6 +192,116 @@ static bool TestWall(float WallX, float PlayerDeltaX, float PlayerDeltaY, float 
 	return Hit;
 }
 
+static Entity* GetEntity(GameState *State, uint32 Index)
+{
+	Entity *E = 0;
+
+	if (Index > 0 && Index < (sizeof(State->Entities) / sizeof(*State->Entities)))
+	{
+		E = &State->Entities[Index];
+	}
+
+	return E;
+}
+
+static void InitializeEntity(Entity *E)
+{
+	E->Exists = true;
+	E->Position.AbsTileX = 1;
+	E->Position.AbsTileY = 3;
+	E->Height = 0.5f;
+	E->Width = 0.5f;
+}
+
+static uint32 AddEntity(GameState *State)
+{
+	assert(State->EntityCount < (sizeof(State->Entities) / sizeof(*State->Entities)));
+
+	uint32 EntityIndex = State->EntityCount++;
+	Entity *E = &State->Entities[EntityIndex];
+	*E = {};
+
+	return EntityIndex;
+}
+
+static void MoveEntity(GameState *State, Entity *E, float Dt, Vector Acceleration)
+{
+	float PlayerSpeed = 50.0f;
+	Acceleration *= PlayerSpeed;
+
+	Acceleration += E->Velocity * -8.f;
+
+	Vector PlayerDelta = Acceleration * 0.5f * Dt * Dt + E->Velocity * Dt;
+	E->Velocity = Acceleration * Dt + E->Velocity;
+	TileMap_Position OldPlayerPosition = E->Position;
+	TileMap_Position NewPlayerPosition = Offset(State->World->TileMap, OldPlayerPosition, PlayerDelta);
+
+	uint32 MinTileX = OldPlayerPosition.AbsTileX < NewPlayerPosition.AbsTileX ? OldPlayerPosition.AbsTileX : NewPlayerPosition.AbsTileX;
+	uint32 MinTileY = OldPlayerPosition.AbsTileY < NewPlayerPosition.AbsTileY ? OldPlayerPosition.AbsTileY : NewPlayerPosition.AbsTileY;
+	uint32 MaxTileX = OldPlayerPosition.AbsTileX > NewPlayerPosition.AbsTileX ? OldPlayerPosition.AbsTileX : NewPlayerPosition.AbsTileX;
+	uint32 MaxTileY = OldPlayerPosition.AbsTileY > NewPlayerPosition.AbsTileY ? OldPlayerPosition.AbsTileY : NewPlayerPosition.AbsTileY;
+
+	uint32 PlayerTileWidth = CeilFloatToINT32(E->Width / State->World->TileMap->TileSideInMeters);
+	uint32 PlayerTileHeight = CeilFloatToINT32(E->Height / State->World->TileMap->TileSideInMeters);
+	MinTileX -= PlayerTileWidth;
+	MinTileY -= PlayerTileHeight;
+	MaxTileX += PlayerTileWidth;
+	MaxTileY += PlayerTileHeight;
+
+	uint32 AbsTileZ = E->Position.AbsTileZ;
+
+	float RemainingT = 1.f;
+	for (uint32 i = 0; i < 4 && RemainingT > 0.f; ++i)
+	{
+		float MinT = 1.f;
+		Vector WallNormal = { };
+
+		assert((MaxTileX - MinTileX) < 32);
+		assert((MaxTileY - MinTileY) < 32);
+
+		for (uint32 AbsTileY = MinTileY; AbsTileY <= MaxTileY; ++AbsTileY)
+		{
+			for (uint32 AbsTileX = MinTileX; AbsTileX <= MaxTileX; ++AbsTileX)
+			{
+				TileMap_Position TestTilePosition = { AbsTileX , AbsTileY, AbsTileZ };
+				if (!WorldIsEmptyAtPosition(State->World->TileMap, &TestTilePosition))
+				{
+					float DiameterW = State->World->TileMap->TileSideInMeters + E->Width;
+					float DiameterH = State->World->TileMap->TileSideInMeters + E->Height;
+					Vector MinCorner = Vector(DiameterW, DiameterH) * -.5f;
+					Vector MaxCorner = Vector(DiameterW, DiameterH) *  .5f;
+
+					TileMap_Difference RelOldPlayerPosition = Substract(State->World->TileMap, &E->Position, &TestTilePosition);
+					Vector Rel = RelOldPlayerPosition.dXY;
+
+					if (TestWall(MinCorner.X, PlayerDelta.X, PlayerDelta.Y, Rel.X, Rel.Y, &MinT, MinCorner.Y, MaxCorner.Y))
+						WallNormal = { -1, 0 };
+					if (TestWall(MaxCorner.X, PlayerDelta.X, PlayerDelta.Y, Rel.X, Rel.Y, &MinT, MinCorner.Y, MaxCorner.Y))
+						WallNormal = { 1, 0 };
+					if (TestWall(MinCorner.Y, PlayerDelta.Y, PlayerDelta.X, Rel.Y, Rel.X, &MinT, MinCorner.X, MaxCorner.X))
+						WallNormal = { 0, -1 };
+					if (TestWall(MaxCorner.Y, PlayerDelta.Y, PlayerDelta.X, Rel.Y, Rel.X, &MinT, MinCorner.X, MaxCorner.X))
+						WallNormal = { 0, 1 };
+				}
+			}
+		}
+
+		E->Position = Offset(State->World->TileMap, E->Position, MinT * PlayerDelta);
+		E->Velocity -= WallNormal * Dot(E->Velocity, WallNormal);
+		PlayerDelta -= WallNormal * Dot(PlayerDelta, WallNormal);
+		RemainingT -= MinT * RemainingT;
+	}
+	
+	if (!PositionsAreOnTheSameTile(&OldPlayerPosition, &E->Position))
+	{
+		uint32 TileValue = GetTileValue(State->World->TileMap, &E->Position);
+		if (TileValue == 3)
+			++E->Position.AbsTileZ;
+		else if (TileValue == 4)
+			--E->Position.AbsTileZ;
+	}
+}
+
 void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory)
 {
 	assert(sizeof(GameState) <= Memory->PermanentStorageSize);
@@ -206,10 +316,10 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		State->PlayerSprite = LoadBMP("assets/Player.bmp");
 		State->CameraPosition.AbsTileX = TilesPerWidth / 2;
 		State->CameraPosition.AbsTileY = TilesPerHeight / 2;
-		State->PlayerPosition.AbsTileX = 1;
-		State->PlayerPosition.AbsTileY = 3;
-		State->PlayerPosition.Offset.X = 0.f;
-		State->PlayerPosition.Offset.Y = 0.f;
+
+		State->CameraFollowingEntityIndex = AddEntity(State);
+		State->PlayerEntity = &State->Entities[State->CameraFollowingEntityIndex];
+		InitializeEntity(State->PlayerEntity);
 
 		InitializeArena(&State->WorldArena, Memory->PermanentStorageSize - sizeof(GameState), 
 			reinterpret_cast<uint8 *>(Memory->PermanentStorage) + sizeof(GameState));
@@ -351,8 +461,6 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 
 	const uint32 TileSideInPixels = 60;
 	const float MetersToPixels = static_cast<float>(TileSideInPixels) / State->World->TileMap->TileSideInMeters;
-	const float PlayerHeight = 0.5f;
-	const float PlayerWidth = 0.5f;
 	Vector PlayerAcceleration = {};
 	static TileMap_Position testPos;
 
@@ -372,95 +480,19 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	{
 		PlayerAcceleration.Y = -1.0f;
 	}
-
 	if (NormSq(PlayerAcceleration) > 1.0f)
 	{
 		PlayerAcceleration /= Norm(PlayerAcceleration);
 	}
-
-	float PlayerSpeed = 50.0f;
 	if (Input->Shift)
 	{
-		PlayerSpeed *= 5.f;
-	}
-	PlayerAcceleration *= PlayerSpeed;
-	PlayerAcceleration += State->PlayerVelocity * -8.f;
-
-	TileMap_Position OldPlayerPosition = State->PlayerPosition;
-	Vector PlayerDelta = PlayerAcceleration * 0.5f * Input->TimeElapsingOverFrame * Input->TimeElapsingOverFrame
-		+ State->PlayerVelocity * Input->TimeElapsingOverFrame;
-	State->PlayerVelocity = PlayerAcceleration * Input->TimeElapsingOverFrame + State->PlayerVelocity;
-	TileMap_Position NewPlayerPosition = Offset(State->World->TileMap, OldPlayerPosition, PlayerDelta);
-
-	uint32 MinTileX = OldPlayerPosition.AbsTileX < NewPlayerPosition.AbsTileX ? OldPlayerPosition.AbsTileX : NewPlayerPosition.AbsTileX;
-	uint32 MinTileY = OldPlayerPosition.AbsTileY < NewPlayerPosition.AbsTileY ? OldPlayerPosition.AbsTileY : NewPlayerPosition.AbsTileY;
-	uint32 MaxTileX = OldPlayerPosition.AbsTileX > NewPlayerPosition.AbsTileX ? OldPlayerPosition.AbsTileX : NewPlayerPosition.AbsTileX;
-	uint32 MaxTileY = OldPlayerPosition.AbsTileY > NewPlayerPosition.AbsTileY ? OldPlayerPosition.AbsTileY : NewPlayerPosition.AbsTileY;
-
-	uint32 PlayerTileWidth = CeilFloatToINT32(PlayerWidth / State->World->TileMap->TileSideInMeters);
-	uint32 PlayerTileHeight = CeilFloatToINT32(PlayerHeight / State->World->TileMap->TileSideInMeters);
-	MinTileX -= PlayerTileWidth;
-	MinTileY -= PlayerTileHeight;
-	MaxTileX += PlayerTileWidth;
-	MaxTileY += PlayerTileHeight;
-
-	uint32 AbsTileZ = State->PlayerPosition.AbsTileZ;
-
-	float RemainingT = 1.f;
-	for (uint32 i = 0; i < 4 && RemainingT > 0.f; ++i)
-	{
-		float MinT = 1.f;
-		Vector WallNormal = { };
-
-		assert((MaxTileX - MinTileX) < 32);
-		assert((MaxTileY - MinTileY) < 32);
-
-		for (uint32 AbsTileY = MinTileY; AbsTileY <= MaxTileY; ++AbsTileY)
-		{
-			for (uint32 AbsTileX = MinTileX; AbsTileX <= MaxTileX; ++AbsTileX)
-			{
-				TileMap_Position TestTilePosition = { AbsTileX , AbsTileY, AbsTileZ };
-				if (!WorldIsEmptyAtPosition(State->World->TileMap, &TestTilePosition))
-				{
-					float DiameterW = State->World->TileMap->TileSideInMeters + PlayerWidth;
-					float DiameterH = State->World->TileMap->TileSideInMeters + PlayerHeight;
-					Vector MinCorner = Vector(DiameterW, DiameterH) * -.5f;
-					Vector MaxCorner = Vector(DiameterW, DiameterH) *  .5f;
-
-					TileMap_Difference RelOldPlayerPosition = Substract(State->World->TileMap, &State->PlayerPosition, &TestTilePosition);
-					Vector Rel = RelOldPlayerPosition.dXY;
-
-					if (TestWall(MinCorner.X, PlayerDelta.X, PlayerDelta.Y, Rel.X, Rel.Y, &MinT, MinCorner.Y, MaxCorner.Y))
-						WallNormal = { -1, 0 };
-					if (TestWall(MaxCorner.X, PlayerDelta.X, PlayerDelta.Y, Rel.X, Rel.Y, &MinT, MinCorner.Y, MaxCorner.Y))
-						WallNormal = { 1, 0 };
-					if (TestWall(MinCorner.Y, PlayerDelta.Y, PlayerDelta.X, Rel.Y, Rel.X, &MinT, MinCorner.X, MaxCorner.X))
-						WallNormal = { 0, -1 };
-					if (TestWall(MaxCorner.Y, PlayerDelta.Y, PlayerDelta.X, Rel.Y, Rel.X, &MinT, MinCorner.X, MaxCorner.X))
-						WallNormal = { 0, 1 };
-				}
-			}
-		}
-
-		State->PlayerPosition = Offset(State->World->TileMap, State->PlayerPosition, MinT * PlayerDelta);
-		State->PlayerVelocity -= WallNormal * Dot(State->PlayerVelocity, WallNormal);
-		PlayerDelta -= WallNormal * Dot(PlayerDelta, WallNormal);
-		RemainingT -= MinT * RemainingT;
+		PlayerAcceleration *= 5.f;
 	}
 
-	if (!PositionsAreOnTheSameTile(&OldPlayerPosition, &State->PlayerPosition))
-	{
-		uint32 TileValue = GetTileValue(State->World->TileMap, &State->PlayerPosition);
-		if (TileValue == 3)
-			++State->PlayerPosition.AbsTileZ;
-		else if (TileValue == 4)
-			--State->PlayerPosition.AbsTileZ;
-	}
+	MoveEntity(State, State->PlayerEntity, Input->TimeElapsingOverFrame, PlayerAcceleration);
 
-	TileMap_Difference PlayerPosToCam = Substract(State->World->TileMap, &State->PlayerPosition, &State->CameraPosition);
-	float PlayerX = 0.5f * Buffer->BitmapWidth + PlayerPosToCam.dXY.X * MetersToPixels;
-	float PlayerY = 0.5f * Buffer->BitmapHeight - PlayerPosToCam.dXY.Y * MetersToPixels;
-	State->CameraPosition.AbsTileZ = State->PlayerPosition.AbsTileZ;
+	State->CameraPosition.AbsTileZ = State->PlayerEntity->Position.AbsTileZ;
+	TileMap_Difference PlayerPosToCam = Substract(State->World->TileMap, &State->PlayerEntity->Position, &State->CameraPosition);
 	if (PlayerPosToCam.dXY.X > (static_cast<float>(1 + TilesPerWidth / 2) * State->World->TileMap->TileSideInMeters))
 		State->CameraPosition.AbsTileX += TilesPerWidth;
 	else if (PlayerPosToCam.dXY.X < (-static_cast<float>(1 + TilesPerWidth / 2) * State->World->TileMap->TileSideInMeters))
@@ -498,7 +530,17 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		}
 	}
 
-	DrawBitmap(Buffer, &State->PlayerSprite, PlayerX, PlayerY, 30.0f / 2.0f, 50.0f);
+	Entity *E = State->Entities;
+	for (uint32 EntityIndex = 0; EntityIndex < State->EntityCount; ++EntityIndex, ++E)
+	{
+		if (E->Exists)
+		{
+			TileMap_Difference EntityPosToCam = Substract(State->World->TileMap, &E->Position, &State->CameraPosition);
+			float X = 0.5f * Buffer->BitmapWidth + EntityPosToCam.dXY.X * MetersToPixels;
+			float Y = 0.5f * Buffer->BitmapHeight - EntityPosToCam.dXY.Y * MetersToPixels;
+			DrawBitmap(Buffer, &State->PlayerSprite, X, Y, 30.0f / 2.0f, 50.0f);
+		}
+	}
 }
 
 void GameGetSoundSamples(/*ThreadContext *Thread,*/ SoundBuffer *SBuffer/*, GameMemory *Memory*/)
