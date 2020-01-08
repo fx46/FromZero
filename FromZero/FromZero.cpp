@@ -28,10 +28,11 @@ static void DrawBitmap(PixelBuffer *Buffer, Bitmap *Bmap, float RealX, float Rea
 {
 	RealX -= AlignX;
 	RealY -= AlignY;
+
 	int32 MinX = RoundFloatToINT32(RealX);
 	int32 MinY = RoundFloatToINT32(RealY);
-	int32 MaxX = RoundFloatToINT32(RealX + static_cast<float>(Bmap->Width));
-	int32 MaxY = RoundFloatToINT32(RealY + static_cast<float>(Bmap->Height));
+	int32 MaxX = MinX + Bmap->Width;
+	int32 MaxY = MinY + Bmap->Height;
 
 	int SourceOffsetX = 0;
 	if (MinX < 0)
