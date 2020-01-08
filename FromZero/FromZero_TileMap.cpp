@@ -7,8 +7,8 @@ static void CanonicalizeCoord(Tile_Map *TileMap, uint32 *Tile, float *TileRel)
 	*Tile += Offset;
 	*TileRel -= Offset * TileMap->TileSideInMeters;
 
-	assert(*TileRel > -0.5001f * TileMap->TileSideInMeters);
-	assert(*TileRel <  0.5001f * TileMap->TileSideInMeters);
+	assert(*TileRel > -0.5f * TileMap->TileSideInMeters);
+	assert(*TileRel <  0.5f * TileMap->TileSideInMeters);
 }
 
 static Tile_Chunk * GetTileChunk(Tile_Map *TileMap, uint32 TileChunkX, uint32 TileChunkY, uint32 TileChunkZ)
@@ -78,10 +78,11 @@ static Tile_Chunk_Position GetChunkPositionFor(Tile_Map *TileMap, uint32 AbsTile
 	return Result;
 }
 
-TileMap_Position CanonicalizePosition(Tile_Map *TileMap, TileMap_Position Pos)
+TileMap_Position MapIntoTileSpace(Tile_Map *TileMap, TileMap_Position BasePos, Vector Offset)
 {
-	TileMap_Position Result = Pos;
+	TileMap_Position Result = BasePos;
 
+	Result.Offset += Offset;
 	CanonicalizeCoord(TileMap, &Result.AbsTileX, &Result.Offset.X);
 	CanonicalizeCoord(TileMap, &Result.AbsTileY, &Result.Offset.Y);
 
@@ -135,7 +136,7 @@ bool PositionsAreOnTheSameTile(TileMap_Position *Position1, TileMap_Position *Po
 	return Position1->AbsTileX == Position2->AbsTileX && Position1->AbsTileY == Position2->AbsTileY && Position1->AbsTileZ == Position2->AbsTileZ;
 }
 
-TileMap_Difference Substract(Tile_Map *TileMap, TileMap_Position *A, TileMap_Position *B)
+TileMap_Difference Subtract(Tile_Map *TileMap, TileMap_Position *A, TileMap_Position *B)
 {
 	TileMap_Difference Result;
 
@@ -144,10 +145,4 @@ TileMap_Difference Substract(Tile_Map *TileMap, TileMap_Position *A, TileMap_Pos
 	Result.dZ = TileMap->TileSideInMeters * (static_cast<float>(A->AbsTileZ) - static_cast<float>(B->AbsTileZ));
 
 	return Result;
-}
-
-TileMap_Position Offset(Tile_Map *TileMap, TileMap_Position P, Vector Offset)
-{
-	P.Offset += Offset;
-	return CanonicalizePosition(TileMap, P);
 }

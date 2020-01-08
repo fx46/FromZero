@@ -50,9 +50,8 @@ struct TileMap_Position
 
 bool WorldIsEmptyAtPosition(Tile_Map *TileMap, TileMap_Position *Pos);
 void SetTileValue(Memory_Arena *Arena, Tile_Map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ, uint32 TileValue);
-TileMap_Position CanonicalizePosition(Tile_Map *TileMap, TileMap_Position Pos);
+TileMap_Position MapIntoTileSpace(Tile_Map *TileMap, TileMap_Position BasePos, Vector Offset);
 uint32 GetTileValue(Tile_Map *TileMap, TileMap_Position *Position);
 uint32 GetTileValue(Tile_Map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ);
 bool PositionsAreOnTheSameTile(TileMap_Position *Position1, TileMap_Position *Position2);
-TileMap_Difference Substract(Tile_Map *TileMap, TileMap_Position *A, TileMap_Position *B);
-TileMap_Position Offset(Tile_Map *TileMap, TileMap_Position P, Vector Offset);
+TileMap_Difference Subtract(Tile_Map *TileMap, TileMap_Position *A, TileMap_Position *B);
