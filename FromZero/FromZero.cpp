@@ -606,7 +606,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 			HighEntity->Position += EntityOffsetForFrame;
 
 			float X = 0.5f * Buffer->BitmapWidth + HighEntity->Position.X * MetersToPixels;
-			float Y = 0.5f * Buffer->BitmapHeight - HighEntity->Position.Y * MetersToPixels;
+			float Y = 0.5f * Buffer->BitmapHeight - HighEntity->Position.Y * MetersToPixels - HighEntity->Z * MetersToPixels;
 			DrawBitmap(Buffer, &State->PlayerSprite, X, Y, 30.0f / 2.0f, 50.0f);
 		}
 	}

@@ -64,6 +64,8 @@ struct HighF_Entity
 	Vector Position;	//Relative to camera
 	Vector Velocity;
 	uint32 AbsTileZ;
+
+	float Z;
 };
 
 struct LowF_Entity
