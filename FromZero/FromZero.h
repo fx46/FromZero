@@ -73,8 +73,16 @@ struct LowF_Entity
 	
 };
 
+enum Entity_Type
+{
+	Entity_Type_Player,
+	Entity_Type_Wall,
+	Entity_Type_Null
+};
+
 struct Dormant_Entity
 {
+	Entity_Type Type;
 	TileMap_Position Position;
 	float Width, Height;
 	bool Collides;
