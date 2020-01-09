@@ -403,8 +403,8 @@ static void SetCamera(GameState *State, TileMap_Position NewCameraPosition)
 	}
 
 	uint32 MinTileX = static_cast<uint32>(NewCameraPosition.AbsTileX - TileSpanX / 2);
-	uint32 MinTileY = static_cast<uint32>(NewCameraPosition.AbsTileX + TileSpanY / 2);
-	uint32 MaxTileX = static_cast<uint32>(NewCameraPosition.AbsTileY - TileSpanX / 2);
+	uint32 MaxTileX = static_cast<uint32>(NewCameraPosition.AbsTileX + TileSpanX / 2);
+	uint32 MinTileY = static_cast<uint32>(NewCameraPosition.AbsTileY - TileSpanY / 2);
 	uint32 MaxTileY = static_cast<uint32>(NewCameraPosition.AbsTileY + TileSpanY / 2);
 	for (uint32 EntityIndex = 1; EntityIndex < sizeof(State->DormantEntities) / sizeof(*State->DormantEntities); ++EntityIndex)
 	{
