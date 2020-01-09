@@ -314,12 +314,13 @@ static void MovePlayer(GameState *State, Entity E, float Dt, Vector Acceleration
 // 
 // 	uint32 AbsTileZ = E->High->Position.AbsTileZ;
 
-	float RemainingT = 1.f;
-	for (uint32 i = 0; i < 4 && RemainingT > 0.f; ++i)
+	for (uint32 i = 0; i < 4; ++i)
 	{
 		float MinT = 1.f;
 		Vector WallNormal = { };
 		uint32 HitEntityIndex = 0;
+
+		Vector DesiredPosition = E.High->Position + PlayerDelta;
 
 		for (uint32 EntityIndex = 1; EntityIndex < State->EntityCount; ++EntityIndex)
 		{
@@ -365,8 +366,8 @@ static void MovePlayer(GameState *State, Entity E, float Dt, Vector Acceleration
 		if (HitEntityIndex)
 		{
 			E.High->Velocity -= WallNormal * Dot(E.High->Velocity, WallNormal);
+			PlayerDelta = DesiredPosition - E.High->Position;
 			PlayerDelta -= WallNormal * Dot(PlayerDelta, WallNormal);
-			RemainingT -= MinT * RemainingT;
 
 			Entity HitEntity = GetEntity(State, Entity_Recidence_Dormant, HitEntityIndex);
 			E.High->AbsTileZ += E.Dormant->dAbsTileZ;
