@@ -23,6 +23,7 @@
     <ClCompile Include="FromZero_intrinsics.cpp" />
     <ClCompile Include="FromZero_TileMap.cpp" />
     <ClCompile Include="FromZero_Windows.cpp" />
+    <ClCompile Include="Math.cpp" />
     <ClCompile Include="MemoryArena.cpp" />
     <ClCompile Include="Vector.cpp" />
   </ItemGroup>
@@ -32,6 +33,7 @@
     <ClInclude Include="FromZero_Platform.h" />
     <ClInclude Include="FromZero_TileMap.h" />
     <ClInclude Include="FromZero_Windows.h" />
+    <ClInclude Include="Math.h" />
     <ClInclude Include="MemoryArena.h" />
     <ClInclude Include="Vector.h" />
   </ItemGroup>
