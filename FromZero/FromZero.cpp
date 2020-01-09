@@ -1,5 +1,6 @@
 #include "FromZero.h"
 #include <intrin.h>
+#include "Math.h"
 
 static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 {
@@ -359,6 +360,24 @@ static void MovePlayer(GameState *State, Entity E, float Dt, Vector Acceleration
 	E.Dormant->Position = MapIntoTileSpace(State->World->TileMap, State->CameraPosition, E.High->Position);
 }
 
+static void SetCamera(GameState *State, TileMap_Position NewCameraPosition)
+{
+	TileMap_Difference dCameraP = Subtract(State->World->TileMap, &NewCameraPosition, &State->CameraPosition);
+	State->CameraPosition = NewCameraPosition;
+	
+	Rectangle CameraBounds = RectCenterDim(Vector(0, 0), State->World->TileMap->TileSideInMeters * Vector(17 * 3, 9 * 3));
+	Vector EntityOffsetForFrame = -dCameraP.dXY;
+	for (uint32 EntityIndex = 0; EntityIndex < sizeof(State->HighEntities)/sizeof(*State->HighEntities); ++EntityIndex)
+	{
+		HighF_Entity *High = &State->HighEntities[EntityIndex];
+		High->Position += EntityOffsetForFrame;
+		if (!IsInRectangle(CameraBounds, High->Position))
+		{
+			ChangeEntityResidence(State, EntityIndex, Entity_Recidence_Low);
+		}
+	}
+}
+
 void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInput *Input, GameMemory *Memory)
 {
 	assert(sizeof(GameState) <= Memory->PermanentStorageSize);
@@ -405,7 +424,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		bool bDoorDown = false;
 		bool bSwitchedFloor = false;
 
-		for (uint32 ScreenIndex = 0; ScreenIndex < 20; ++ScreenIndex)
+		for (uint32 ScreenIndex = 0; ScreenIndex < 1; ++ScreenIndex)
 		{
 			bDoorLeft = bDoorRight;
 			bDoorBottom = bDoorTop;
@@ -557,18 +576,18 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	Entity Player = GetEntity(State, Entity_Recidence_High, State->PlayerEntityIndex);
 	MovePlayer(State, Player, Input->TimeElapsingOverFrame, PlayerAcceleration);
 
-	State->CameraPosition.AbsTileZ = State->DormantEntities[State->PlayerEntityIndex].Position.AbsTileZ;
-	TileMap_Position OldCameraPosition = State->CameraPosition;
+	TileMap_Position NewCameraPosition = State->CameraPosition;
+	NewCameraPosition.AbsTileZ = State->DormantEntities[State->PlayerEntityIndex].Position.AbsTileZ;
 	if (Player.High->Position.X > (static_cast<float>(1 + TilesPerWidth / 2) * State->World->TileMap->TileSideInMeters))
-		State->CameraPosition.AbsTileX += TilesPerWidth;
+		NewCameraPosition.AbsTileX += TilesPerWidth;
 	else if (Player.High->Position.X < (-static_cast<float>(1 + TilesPerWidth / 2) * State->World->TileMap->TileSideInMeters))
-		State->CameraPosition.AbsTileX -= TilesPerWidth;
+		NewCameraPosition.AbsTileX -= TilesPerWidth;
 	if (Player.High->Position.Y > (static_cast<float>(1 + TilesPerHeight / 2) * State->World->TileMap->TileSideInMeters))
-		State->CameraPosition.AbsTileY += TilesPerHeight;
+		NewCameraPosition.AbsTileY += TilesPerHeight;
 	else if (Player.High->Position.Y < (-static_cast<float>(1 + TilesPerHeight / 2) * State->World->TileMap->TileSideInMeters))
-		State->CameraPosition.AbsTileY -= TilesPerHeight;
-	TileMap_Difference dCameraP = Subtract(State->World->TileMap, &State->CameraPosition, &OldCameraPosition);
-	Vector EntityOffsetForFrame = -dCameraP.dXY;
+		NewCameraPosition.AbsTileY -= TilesPerHeight;
+
+	SetCamera(State, NewCameraPosition);
 
 	DrawBitmap(Buffer, &State->Background, 0, 0);
 	
@@ -603,9 +622,6 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		if (State->EntityResidence[EntityIndex] == Entity_Recidence_High)
 		{
 			HighF_Entity *HighEntity = &State->HighEntities[EntityIndex];
-
-			HighEntity->Position += EntityOffsetForFrame;
-
 			float X = 0.5f * Buffer->BitmapWidth + HighEntity->Position.X * MetersToPixels;
 			float Y = 0.5f * Buffer->BitmapHeight - HighEntity->Position.Y * MetersToPixels - HighEntity->Z * MetersToPixels;
 			DrawBitmap(Buffer, &State->PlayerSprite, X, Y, 30.0f / 2.0f, 50.0f);
