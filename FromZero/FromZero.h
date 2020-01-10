@@ -64,13 +64,8 @@ struct HighF_Entity
 	Vector Position;	//Relative to camera
 	Vector Velocity;
 	uint32 AbsTileZ;
-
+	uint32 LowEntityIndex;
 	float Z;
-};
-
-struct LowF_Entity
-{
-	
 };
 
 enum Entity_Type
@@ -80,29 +75,21 @@ enum Entity_Type
 	Entity_Type_Null
 };
 
-struct Dormant_Entity
+struct LowF_Entity
 {
 	Entity_Type Type;
 	TileMap_Position Position;
 	float Width, Height;
 	bool Collides;
 	int32 dAbsTileZ;	//for stairs
+	uint32 HighEntityIndex;
 };
 
 struct Entity
 {
-	uint32 Residence;
+	uint32 LowIndex;
 	LowF_Entity *Low;
-	Dormant_Entity *Dormant;
 	HighF_Entity *High;
-};
-
-enum Entity_Recidence
-{
-	Entity_Recidence_Nonexistant,
-	Entity_Recidence_Dormant,
-	Entity_Recidence_Low,
-	Entity_Recidence_High
 };
 
 struct GameState
@@ -112,12 +99,13 @@ struct GameState
 	TileMap_Position CameraPosition;
 	Bitmap Background;
 	Bitmap PlayerSprite;
-	uint32 EntityCount;
-	Entity_Recidence EntityResidence[256];
 	uint32 PlayerEntityIndex;
-	HighF_Entity HighEntities[256];
-	LowF_Entity LowEntities[256];
-	Dormant_Entity DormantEntities[256];
+
+	uint32  LowEntityCount;
+	LowF_Entity LowEntities[4096];
+	
+	uint32 HighEntityCount;
+	HighF_Entity HighEntities_[256];
 };
 
 #pragma pack(push, 1)
