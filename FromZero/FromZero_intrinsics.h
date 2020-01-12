@@ -6,7 +6,8 @@
 #define assert(Expression)
 #endif
 
-#define INT32_MAX        2147483647i32
+#define INT32_MAX	2147483647i32
+#define UINT32_MAX	0xffffffffui32
 
 typedef signed char         int8;
 typedef signed short        int16;
