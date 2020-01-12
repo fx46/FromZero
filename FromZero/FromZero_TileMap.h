@@ -6,29 +6,34 @@
 
 struct Tile_Chunk_Position
 {
-	uint32 TileChunkX;
-	uint32 TileChunkY;
-	uint32 TileChunkZ;
+	int32 TileChunkX;
+	int32 TileChunkY;
+	int32 TileChunkZ;
 
-	uint32 ChunkRelTileX;
-	uint32 ChunkRelTileY;
+	int32 ChunkRelTileX;
+	int32 ChunkRelTileY;
 };
 
 struct Tile_Chunk
 {
+	int32 TileChunkX;
+	int32 TileChunkY;
+	int32 TileChunkZ;
+
 	uint32 *Tiles;
+
+	Tile_Chunk *NextInHash;
 };
 
 struct Tile_Map
 {
-	Tile_Chunk *TileChunks;
-	uint32 ChunkShift;
-	uint32 ChunkMask;
-	uint32 ChunkDimension;
-	uint32 TileChunkCountX;
-	uint32 TileChunkCountY;
-	uint32 TileChunkCountZ;
+	int32 ChunkShift;
+	int32 ChunkMask;
+	int32 ChunkDimension;
+	
 	float TileSideInMeters;
+
+	Tile_Chunk TileChunkHash[4096];
 };
 
 struct TileMap_Difference
@@ -41,9 +46,9 @@ struct TileMap_Position
 {
 	// Fixed point tile locations, the high bits are the tile chunk index, 
 	// and the low bits are the tile index in the chunk.
-	uint32 AbsTileX;
-	uint32 AbsTileY;
-	uint32 AbsTileZ;
+	int32 AbsTileX;
+	int32 AbsTileY;
+	int32 AbsTileZ;
 
 	Vector Offset;
 };
@@ -55,3 +60,4 @@ uint32 GetTileValue(Tile_Map *TileMap, TileMap_Position *Position);
 uint32 GetTileValue(Tile_Map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ);
 bool PositionsAreOnTheSameTile(TileMap_Position *Position1, TileMap_Position *Position2);
 TileMap_Difference Subtract(Tile_Map *TileMap, TileMap_Position *A, TileMap_Position *B);
+void InitializeTileMap(Tile_Map *TileMap, float TileSideInMeters);

@@ -1,6 +1,7 @@
 #include "FromZero.h"
 #include <intrin.h>
 #include "Math.h"
+#include <stdint.h>
 
 static void OutputSound(SoundBuffer *Buffer, int ToneHz)
 {
@@ -299,8 +300,7 @@ static uint32 AddPlayer(GameState *State)
 	uint32 EntityIndex = AddLowEntity(State, Entity_Type_Player);
 	LowF_Entity *E = GetLowEntity(State, EntityIndex);
 
-	E->Position.AbsTileX = 1;
-	E->Position.AbsTileY = 3;
+	E->Position = State->CameraPosition;
 	E->Height = 0.5f;
 	E->Width = 0.5f;
 	E->Collides = true;
@@ -430,27 +430,28 @@ static void SetCamera(GameState *State, TileMap_Position NewCameraPosition)
 	TileMap_Difference dCameraP = Subtract(State->World->TileMap, &NewCameraPosition, &State->CameraPosition);
 	State->CameraPosition = NewCameraPosition;
 	
-	float TileSpanX = 17.f * 3.f;
-	float TileSpanY = 9.f * 3.f;
-	Rectangle CameraBounds = RectCenterDim(Vector(0, 0), State->World->TileMap->TileSideInMeters * Vector(TileSpanX, TileSpanY));
+	int32 TileSpanX = 17 * 3;
+	int32 TileSpanY = 9 * 3;
+	Rectangle CameraBounds = RectCenterDim(Vector(0, 0), 
+		State->World->TileMap->TileSideInMeters * Vector(static_cast<float>(TileSpanX), static_cast<float>(TileSpanY)));
 	Vector EntityOffsetForFrame = -dCameraP.dXY;
 
 	OffsetAndCheckFrequencyByArea(State, EntityOffsetForFrame, CameraBounds);
 
-	uint32 MinTileX = static_cast<uint32>(NewCameraPosition.AbsTileX - TileSpanX / 2);
-	uint32 MaxTileX = static_cast<uint32>(NewCameraPosition.AbsTileX + TileSpanX / 2);
-	uint32 MinTileY = static_cast<uint32>(NewCameraPosition.AbsTileY - TileSpanY / 2);
-	uint32 MaxTileY = static_cast<uint32>(NewCameraPosition.AbsTileY + TileSpanY / 2);
+	int32 MinTileX = NewCameraPosition.AbsTileX - TileSpanX / 2;
+	int32 MaxTileX = NewCameraPosition.AbsTileX + TileSpanX / 2;
+	int32 MinTileY = NewCameraPosition.AbsTileY - TileSpanY / 2;
+	int32 MaxTileY = NewCameraPosition.AbsTileY + TileSpanY / 2;
 	for (uint32 EntityIndex = 1; EntityIndex < State->LowEntityCount; ++EntityIndex)
 	{
 		LowF_Entity *Low = &State->LowEntities[EntityIndex];
 		if (Low->HighEntityIndex == 0)
 		{
-// 			if (Low->Position.AbsTileZ == NewCameraPosition.AbsTileZ &&
-// 				Low->Position.AbsTileX >= MinTileX &&
-// 				Low->Position.AbsTileX <= MaxTileX &&
-// 				Low->Position.AbsTileY <= MinTileY &&
-// 				Low->Position.AbsTileY >= MaxTileY)
+			if (Low->Position.AbsTileZ == NewCameraPosition.AbsTileZ &&
+				Low->Position.AbsTileX >= MinTileX &&
+				Low->Position.AbsTileX <= MaxTileX &&
+				Low->Position.AbsTileY >= MinTileY &&
+				Low->Position.AbsTileY <= MaxTileY)
 			{
 				MakeEntityHighFrequency(State, EntityIndex);
 			}
@@ -480,23 +481,14 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		// World construction
 		State->World = reinterpret_cast<World_Map *>(PushSize(&State->WorldArena, sizeof(World_Map)));
 		State->World->TileMap = reinterpret_cast<Tile_Map *>(PushSize(&State->WorldArena, sizeof(Tile_Map)));
-		State->World->TileMap->ChunkShift = 4;
-		State->World->TileMap->ChunkMask = (1 << State->World->TileMap->ChunkShift) - 1;
-		State->World->TileMap->ChunkDimension = 1 << State->World->TileMap->ChunkShift;
-		State->World->TileMap->TileChunkCountX = 128;
-		State->World->TileMap->TileChunkCountY = 128;
-		State->World->TileMap->TileChunkCountZ = 2;
-		State->World->TileMap->TileChunks 
-			= reinterpret_cast<Tile_Chunk *>(PushArray(&State->WorldArena, 
-														sizeof(Tile_Chunk), 
-														State->World->TileMap->TileChunkCountX * 
-														State->World->TileMap->TileChunkCountY *
-														State->World->TileMap->TileChunkCountZ));
-		State->World->TileMap->TileSideInMeters = 1.4f;
+		InitializeTileMap(State->World->TileMap, 1.4f);
 
-		uint32 ScreenX = 0;
-		uint32 ScreenY = 0;
-		uint32 AbsTileZ = 0;
+		uint32 ScreenBaseX = 0;
+		uint32 ScreenBaseY = 0;
+		uint32 ScreenBaseZ = 0;
+		uint32 ScreenX = ScreenBaseX;
+		uint32 ScreenY = ScreenBaseY;
+		uint32 AbsTileZ = ScreenBaseZ;
 		bool bDoorLeft = false;
 		bool bDoorRight = false;
 		bool bDoorTop = false;
@@ -532,7 +524,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 
 			if (RandomChoice == 2)
 			{
-				if (AbsTileZ == 0)
+				if (AbsTileZ == ScreenBaseZ)
 				{
 					bDoorUp = true;
 					bDoorDown = false;
@@ -603,7 +595,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 			}
 			if (RandomChoice == 2)
 			{
-				AbsTileZ == 0 ? AbsTileZ = 1 : AbsTileZ = 0;
+				AbsTileZ == ScreenBaseZ ? AbsTileZ = ScreenBaseZ + 1 : AbsTileZ = ScreenBaseZ;
 			}
 			else if (RandomChoice == 1)
 			{
@@ -616,8 +608,9 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		}
 
 		TileMap_Position NewCameraPosition = {};
-		NewCameraPosition.AbsTileX = 17 / 2;
-		NewCameraPosition.AbsTileY = 9 / 2;
+		NewCameraPosition.AbsTileX = ScreenBaseX * TilesPerWidth + 17 / 2;
+		NewCameraPosition.AbsTileY = ScreenBaseY * TilesPerHeight + 9 / 2;
+		NewCameraPosition.AbsTileZ = ScreenBaseZ;
 		SetCamera(State, NewCameraPosition);
 
 		Memory->bIsInitialized = true;
