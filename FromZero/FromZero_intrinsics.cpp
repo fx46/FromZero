@@ -1,8 +1,8 @@
 #include "FromZero_intrinsics.h"
 #include "FromZero_Platform.h"
-#include "math.h"
 #include <intrin0.h>
 #include <stdlib.h>
+#include <corecrt_math.h>
 
 Bit_Scan_Result FindLeastSignificantSetBit(uint32 Value)
 {
