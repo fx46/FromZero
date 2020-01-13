@@ -211,7 +211,7 @@ static HighF_Entity* MakeEntityHighFrequency(GameState *State, uint32 LowIndex)
 			uint32 HighIndex = State->HighEntityCount++;
 			HighEntity = &State->HighEntities_[HighIndex];
 
-			TileMap_Difference Diff = Subtract(State->World->TileMap, &LowEntity->Position, &State->CameraPosition);
+			World_Position_Difference Diff = Subtract(State->W, &LowEntity->Position, &State->CameraPosition);
 			HighEntity->Position = Diff.dXY;
 			HighEntity->Velocity = Vector(0, 0);
 			HighEntity->AbsTileZ = LowEntity->Position.AbsTileZ;
@@ -321,8 +321,8 @@ static uint32 AddWall(GameState *State, uint32 AbsTileX, uint32 AbsTileY, uint32
 	E->Position.AbsTileX = AbsTileX;
 	E->Position.AbsTileY = AbsTileY;
 	E->Position.AbsTileZ = AbsTileZ;
-	E->Height = State->World->TileMap->TileSideInMeters;
-	E->Width = State->World->TileMap->TileSideInMeters;
+	E->Height = State->W->TileSideInMeters;
+	E->Width = State->W->TileSideInMeters;
 	E->Collides = true;
 
 	return EntityIndex;
@@ -339,20 +339,6 @@ static void MovePlayer(GameState *State, Entity E, float Dt, Vector Acceleration
 	Vector PlayerDelta = Acceleration * 0.5f * Dt * Dt + E.High->Velocity * Dt;
 	E.High->Velocity = Acceleration * Dt + E.High->Velocity;
 	Vector NewPlayerPosition = OldPlayerPosition + PlayerDelta;
-
-// 	uint32 MinTileX = OldPlayerPosition.AbsTileX < NewPlayerPosition.AbsTileX ? OldPlayerPosition.AbsTileX : NewPlayerPosition.AbsTileX;
-// 	uint32 MinTileY = OldPlayerPosition.AbsTileY < NewPlayerPosition.AbsTileY ? OldPlayerPosition.AbsTileY : NewPlayerPosition.AbsTileY;
-// 	uint32 MaxTileX = OldPlayerPosition.AbsTileX > NewPlayerPosition.AbsTileX ? OldPlayerPosition.AbsTileX : NewPlayerPosition.AbsTileX;
-// 	uint32 MaxTileY = OldPlayerPosition.AbsTileY > NewPlayerPosition.AbsTileY ? OldPlayerPosition.AbsTileY : NewPlayerPosition.AbsTileY;
-// 
-// 	uint32 PlayerTileWidth = CeilFloatToINT32(E->Width / State->World->TileMap->TileSideInMeters);
-// 	uint32 PlayerTileHeight = CeilFloatToINT32(E->Height / State->World->TileMap->TileSideInMeters);
-// 	MinTileX -= PlayerTileWidth;
-// 	MinTileY -= PlayerTileHeight;
-// 	MaxTileX += PlayerTileWidth;
-// 	MaxTileY += PlayerTileHeight;
-// 
-// 	uint32 AbsTileZ = E->High->Position.AbsTileZ;
 
 	for (uint32 i = 0; i < 4; ++i)
 	{
@@ -422,18 +408,18 @@ static void MovePlayer(GameState *State, Entity E, float Dt, Vector Acceleration
 		}
 	}
 
-	E.Low->Position = MapIntoTileSpace(State->World->TileMap, State->CameraPosition, E.High->Position);
+	E.Low->Position = MapIntoTileSpace(State->W, State->CameraPosition, E.High->Position);
 }
 
-static void SetCamera(GameState *State, TileMap_Position NewCameraPosition)
+static void SetCamera(GameState *State, World_Position NewCameraPosition)
 {
-	TileMap_Difference dCameraP = Subtract(State->World->TileMap, &NewCameraPosition, &State->CameraPosition);
+	World_Position_Difference dCameraP = Subtract(State->W, &NewCameraPosition, &State->CameraPosition);
 	State->CameraPosition = NewCameraPosition;
 	
 	int32 TileSpanX = 17 * 3;
 	int32 TileSpanY = 9 * 3;
 	Rectangle CameraBounds = RectCenterDim(Vector(0, 0), 
-		State->World->TileMap->TileSideInMeters * Vector(static_cast<float>(TileSpanX), static_cast<float>(TileSpanY)));
+		State->W->TileSideInMeters * Vector(static_cast<float>(TileSpanX), static_cast<float>(TileSpanY)));
 	Vector EntityOffsetForFrame = -dCameraP.dXY;
 
 	OffsetAndCheckFrequencyByArea(State, EntityOffsetForFrame, CameraBounds);
@@ -479,9 +465,8 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 			reinterpret_cast<uint8 *>(Memory->PermanentStorage) + sizeof(GameState));
 
 		// World construction
-		State->World = reinterpret_cast<World_Map *>(PushSize(&State->WorldArena, sizeof(World_Map)));
-		State->World->TileMap = reinterpret_cast<Tile_Map *>(PushSize(&State->WorldArena, sizeof(Tile_Map)));
-		InitializeTileMap(State->World->TileMap, 1.4f);
+		State->W = reinterpret_cast<World *>(PushSize(&State->WorldArena, sizeof(World)));
+		InitializeWorld(State->W, 1.4f);
 
 		uint32 ScreenBaseX = 0;
 		uint32 ScreenBaseY = 0;
@@ -604,7 +589,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 			}
 		}
 
-		TileMap_Position NewCameraPosition = {};
+		World_Position NewCameraPosition = {};
 		NewCameraPosition.AbsTileX = ScreenBaseX * TilesPerWidth + 17 / 2;
 		NewCameraPosition.AbsTileY = ScreenBaseY * TilesPerHeight + 9 / 2;
 		NewCameraPosition.AbsTileZ = ScreenBaseZ;
@@ -614,9 +599,9 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 	}
 
 	const uint32 TileSideInPixels = 60;
-	const float MetersToPixels = static_cast<float>(TileSideInPixels) / State->World->TileMap->TileSideInMeters;
+	const float MetersToPixels = static_cast<float>(TileSideInPixels) / State->W->TileSideInMeters;
 	Vector PlayerAcceleration = {};
-	static TileMap_Position testPos;
+	static World_Position testPos;
 
 	if (Input->A)
 	{
@@ -652,47 +637,21 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		Entity Player = GetHighEntity(State, State->PlayerEntityIndex);
 		MovePlayer(State, Player, Input->TimeElapsingOverFrame, PlayerAcceleration);
 
-		TileMap_Position NewCameraPosition = State->CameraPosition;
+		World_Position NewCameraPosition = State->CameraPosition;
 		NewCameraPosition.AbsTileZ = State->LowEntities[State->PlayerEntityIndex].Position.AbsTileZ;
-		if (Player.High->Position.X > (static_cast<float>(1 + TilesPerWidth / 2) * State->World->TileMap->TileSideInMeters))
+		if (Player.High->Position.X > (static_cast<float>(1 + TilesPerWidth / 2) * State->W->TileSideInMeters))
 			NewCameraPosition.AbsTileX += TilesPerWidth;
-		else if (Player.High->Position.X < (-static_cast<float>(1 + TilesPerWidth / 2) * State->World->TileMap->TileSideInMeters))
+		else if (Player.High->Position.X < (-static_cast<float>(1 + TilesPerWidth / 2) * State->W->TileSideInMeters))
 			NewCameraPosition.AbsTileX -= TilesPerWidth;
-		if (Player.High->Position.Y > (static_cast<float>(1 + TilesPerHeight / 2) * State->World->TileMap->TileSideInMeters))
+		if (Player.High->Position.Y > (static_cast<float>(1 + TilesPerHeight / 2) * State->W->TileSideInMeters))
 			NewCameraPosition.AbsTileY += TilesPerHeight;
-		else if (Player.High->Position.Y < (-static_cast<float>(1 + TilesPerHeight / 2) * State->World->TileMap->TileSideInMeters))
+		else if (Player.High->Position.Y < (-static_cast<float>(1 + TilesPerHeight / 2) * State->W->TileSideInMeters))
 			NewCameraPosition.AbsTileY -= TilesPerHeight;
 
 		SetCamera(State, NewCameraPosition);
 	}
 
 	DrawBitmap(Buffer, &State->Background, 0, 0);
-	
-// 	for (int32 RelRow = -10; RelRow < 10; ++RelRow)
-// 	{
-// 		for (int32 RelColumn = -20; RelColumn < 20; ++RelColumn)
-// 		{
-// 			uint32 Column = State->CameraPosition.AbsTileX + RelColumn;
-// 			uint32 Row = State->CameraPosition.AbsTileY + RelRow;
-// 
-// 			uint32 TileID = GetTileValue(State->World->TileMap, Column, Row, State->CameraPosition.AbsTileZ);
-// 			if (TileID > 1)
-// 			{
-// 				float Color = TileID == 2 ? 1.f : 0.5f;
-// 				if (TileID > 2)
-// 					Color = 0.25f;
-// 				if (Row == State->CameraPosition.AbsTileY && Column == State->CameraPosition.AbsTileX)
-// 					Color = 0.f;
-// 
-// 				Vector Center = { 0.5f * Buffer->BitmapWidth - MetersToPixels * State->CameraPosition.Offset.X + static_cast<float>(RelColumn) * TileSideInPixels,
-// 								  0.5f * Buffer->BitmapHeight + MetersToPixels * State->CameraPosition.Offset.Y - static_cast<float>(RelRow) * TileSideInPixels };
-// 				Vector TileSide = { TileSideInPixels / 2 , TileSideInPixels / 2 };
-// 				Vector Min = Center - TileSide;
-// 				Vector Max = Center + TileSide;
-// 				DrawRectangle(Buffer, Min, Max, Color, Color, Color);
-// 			}
-// 		}
-// 	}
 
 	for (uint32 HighEntityIndex = 1; HighEntityIndex < State->HighEntityCount; ++HighEntityIndex)
 	{

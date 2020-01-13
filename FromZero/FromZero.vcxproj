@@ -21,7 +21,7 @@
   <ItemGroup>
     <ClCompile Include="FromZero.cpp" />
     <ClCompile Include="FromZero_intrinsics.cpp" />
-    <ClCompile Include="FromZero_TileMap.cpp" />
+    <ClCompile Include="FromZero_World.cpp" />
     <ClCompile Include="FromZero_Windows.cpp" />
     <ClCompile Include="Math.cpp" />
     <ClCompile Include="MemoryArena.cpp" />
@@ -31,7 +31,7 @@
     <ClInclude Include="FromZero.h" />
     <ClInclude Include="FromZero_intrinsics.h" />
     <ClInclude Include="FromZero_Platform.h" />
-    <ClInclude Include="FromZero_TileMap.h" />
+    <ClInclude Include="FromZero_World.h" />
     <ClInclude Include="FromZero_Windows.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="MemoryArena.h" />

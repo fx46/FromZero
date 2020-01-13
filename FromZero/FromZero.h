@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FromZero_TileMap.h"
+#include "FromZero_World.h"
 #include "FromZero_intrinsics.h"
 #include "Vector.h"
 
@@ -47,11 +47,6 @@ struct GameMemory
 	bool bIsInitialized;
 };
 
-struct World_Map
-{
-	Tile_Map *TileMap;
-};
-
 struct Bitmap
 {
 	int Width;
@@ -78,7 +73,7 @@ enum Entity_Type
 struct LowF_Entity
 {
 	Entity_Type Type;
-	TileMap_Position Position;
+	World_Position Position;
 	float Width, Height;
 	bool Collides;
 	int32 dAbsTileZ;	//for stairs
@@ -92,19 +87,13 @@ struct Entity
 	HighF_Entity *High;
 };
 
-struct Low_Entity_Chunk_reference
-{
-	Tile_Chunk *TileChunk;
-	uint32 EntityIndexInChunk;
-};
-
 struct GameState
 {
 	Memory_Arena WorldArena;
-	World_Map *World;
+	World *W;
 	
 	uint32 PlayerEntityIndex;
-	TileMap_Position CameraPosition;
+	World_Position CameraPosition;
 	
 	Bitmap Background;
 	Bitmap PlayerSprite;
