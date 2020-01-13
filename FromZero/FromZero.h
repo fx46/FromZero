@@ -92,17 +92,25 @@ struct Entity
 	HighF_Entity *High;
 };
 
+struct Low_Entity_Chunk_reference
+{
+	Tile_Chunk *TileChunk;
+	uint32 EntityIndexInChunk;
+};
+
 struct GameState
 {
-	World_Map *World;
 	Memory_Arena WorldArena;
+	World_Map *World;
+	
+	uint32 PlayerEntityIndex;
 	TileMap_Position CameraPosition;
+	
 	Bitmap Background;
 	Bitmap PlayerSprite;
-	uint32 PlayerEntityIndex;
 
 	uint32  LowEntityCount;
-	LowF_Entity LowEntities[4096];
+	LowF_Entity LowEntities[100000];
 	
 	uint32 HighEntityCount;
 	HighF_Entity HighEntities_[256];

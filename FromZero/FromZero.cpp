@@ -267,13 +267,13 @@ static Entity GetHighEntity(GameState *State, uint32 LowIndex)
 	return Result;
 }
 
-static void OffsetAndCheckFrequencyByArea(GameState *State, Vector Offset, Rectangle CameraBounds)
+static void OffsetAndCheckFrequencyByArea(GameState *State, Vector Offset, Rectangle HighFrequencyBounds)
 {
 	for (uint32 EntityIndex = 1; EntityIndex < State->HighEntityCount;)
 	{
 		HighF_Entity *High = &State->HighEntities_[EntityIndex];
 		High->Position += Offset;
-		if (IsInRectangle(CameraBounds, High->Position))
+		if (IsInRectangle(HighFrequencyBounds, High->Position))
 		{
 			++EntityIndex;
 		}
@@ -584,9 +584,6 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 						else if (bDoorDown)
 							TileValue = 4;
 					}
-
-					SetTileValue(&State->WorldArena, State->World->TileMap, AbsTileX, AbsTileY, AbsTileZ, TileValue);
-
 					if (TileValue == 2)
 					{
 						AddWall(State, AbsTileX, AbsTileY, AbsTileZ);

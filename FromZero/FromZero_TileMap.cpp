@@ -42,18 +42,9 @@ static Tile_Chunk * GetTileChunk(Tile_Map *TileMap, int32 TileChunkX, int32 Tile
 		}
 		if (Arena && Chunk->TileChunkX == TileChunk_Uninitialized)
 		{
-			uint32 TileCount = TileMap->ChunkDimension * TileMap->ChunkDimension;
-
 			Chunk->TileChunkX = TileChunkX;
 			Chunk->TileChunkY = TileChunkY;
 			Chunk->TileChunkZ = TileChunkZ;
-
-			Chunk->Tiles = reinterpret_cast<uint32 *>(PushArray(Arena, TileCount, sizeof(uint32)));
-			for (uint32 TileIndex = 0; TileIndex < TileCount; ++TileIndex)
-			{
-				Chunk->Tiles[TileIndex] = 1;
-			}
-
 			Chunk->NextInHash = 0;
 
 			break;
@@ -65,43 +56,44 @@ static Tile_Chunk * GetTileChunk(Tile_Map *TileMap, int32 TileChunkX, int32 Tile
 	return Chunk;
 }
 
-static uint32 GetTileValueUnchecked(Tile_Map *TileMap, Tile_Chunk *TileChunk, int32 TileX, int32 TileY)
-{
-	assert(TileChunk);
-	assert(TileX < TileMap->ChunkDimension);
-	assert(TileY < TileMap->ChunkDimension);
+41:48 / 1 : 17 : 01
+// static uint32 GetTileValueUnchecked(Tile_Map *TileMap, Tile_Chunk *TileChunk, int32 TileX, int32 TileY)
+// {
+// 	assert(TileChunk);
+// 	assert(TileX < TileMap->ChunkDimension);
+// 	assert(TileY < TileMap->ChunkDimension);
+// 
+// 	return TileChunk->Tiles[TileY * TileMap->ChunkDimension + TileX];
+// }
+// 
+// static void SetTileValueUnchecked(Tile_Map *TileMap, Tile_Chunk *TileChunk, int32 TileX, int32 TileY, int32 TileValue)
+// {
+// 	assert(TileChunk);
+// 	assert(TileX < TileMap->ChunkDimension);
+// 	assert(TileY < TileMap->ChunkDimension);
+// 
+// 	TileChunk->Tiles[TileY * TileMap->ChunkDimension + TileX] = TileValue;
+// }
 
-	return TileChunk->Tiles[TileY * TileMap->ChunkDimension + TileX];
-}
+// static uint32 GetTileValue(Tile_Map *TileMap, Tile_Chunk *TileChunk, uint32 TestTileX, uint32 TestTileY)
+// {
+// 	uint32 TileChunkValue = 0;
+// 
+// 	if (TileChunk && TileChunk->Tiles)
+// 	{
+// 		TileChunkValue = GetTileValueUnchecked(TileMap, TileChunk, TestTileX, TestTileY);
+// 	}
+// 
+// 	return TileChunkValue;
+// }
 
-static void SetTileValueUnchecked(Tile_Map *TileMap, Tile_Chunk *TileChunk, int32 TileX, int32 TileY, int32 TileValue)
-{
-	assert(TileChunk);
-	assert(TileX < TileMap->ChunkDimension);
-	assert(TileY < TileMap->ChunkDimension);
-
-	TileChunk->Tiles[TileY * TileMap->ChunkDimension + TileX] = TileValue;
-}
-
-static uint32 GetTileValue(Tile_Map *TileMap, Tile_Chunk *TileChunk, uint32 TestTileX, uint32 TestTileY)
-{
-	uint32 TileChunkValue = 0;
-
-	if (TileChunk && TileChunk->Tiles)
-	{
-		TileChunkValue = GetTileValueUnchecked(TileMap, TileChunk, TestTileX, TestTileY);
-	}
-
-	return TileChunkValue;
-}
-
-static void SetTileValue(Tile_Map *TileMap, Tile_Chunk *TileChunk, uint32 TestTileX, uint32 TestTileY, uint32 TileValue)
-{
-	if (TileChunk && TileChunk->Tiles)
-	{
-		SetTileValueUnchecked(TileMap, TileChunk, TestTileX, TestTileY, TileValue);
-	}
-}
+// static void SetTileValue(Tile_Map *TileMap, Tile_Chunk *TileChunk, uint32 TestTileX, uint32 TestTileY, uint32 TileValue)
+// {
+// 	if (TileChunk && TileChunk->Tiles)
+// 	{
+// 		SetTileValueUnchecked(TileMap, TileChunk, TestTileX, TestTileY, TileValue);
+// 	}
+// }
 
 static Tile_Chunk_Position GetChunkPositionFor(Tile_Map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ)
 {
@@ -127,33 +119,33 @@ TileMap_Position MapIntoTileSpace(Tile_Map *TileMap, TileMap_Position BasePos, V
 	return Result;
 }
 
-uint32 GetTileValue(Tile_Map *TileMap, TileMap_Position *Position)
-{
-	return GetTileValue(TileMap, Position->AbsTileX, Position->AbsTileY, Position->AbsTileZ);
-}
+// uint32 GetTileValue(Tile_Map *TileMap, TileMap_Position *Position)
+// {
+// 	return GetTileValue(TileMap, Position->AbsTileX, Position->AbsTileY, Position->AbsTileZ);
+// }
 
-bool WorldIsEmptyAtPosition(Tile_Map *TileMap, TileMap_Position *Pos)
-{
-	uint32 TileChunkValue = GetTileValue(TileMap, Pos);
+// bool WorldIsEmptyAtPosition(Tile_Map *TileMap, TileMap_Position *Pos)
+// {
+// 	uint32 TileChunkValue = GetTileValue(TileMap, Pos);
+// 
+// 	return TileChunkValue == 1 || TileChunkValue == 3 || TileChunkValue == 4;
+// }
 
-	return TileChunkValue == 1 || TileChunkValue == 3 || TileChunkValue == 4;
-}
+// uint32 GetTileValue(Tile_Map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ)
+// {
+// 	Tile_Chunk_Position ChunkPosition = GetChunkPositionFor(TileMap, AbsTileX, AbsTileY, AbsTileZ);
+// 	Tile_Chunk *TileChunk = GetTileChunk(TileMap, ChunkPosition.TileChunkX, ChunkPosition.TileChunkY, ChunkPosition.TileChunkZ);
+// 	uint32 TileChunkValue = GetTileValue(TileMap, TileChunk, ChunkPosition.ChunkRelTileX, ChunkPosition.ChunkRelTileY);
+// 
+// 	return TileChunkValue;
+// }
 
-uint32 GetTileValue(Tile_Map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ)
-{
-	Tile_Chunk_Position ChunkPosition = GetChunkPositionFor(TileMap, AbsTileX, AbsTileY, AbsTileZ);
-	Tile_Chunk *TileChunk = GetTileChunk(TileMap, ChunkPosition.TileChunkX, ChunkPosition.TileChunkY, ChunkPosition.TileChunkZ);
-	uint32 TileChunkValue = GetTileValue(TileMap, TileChunk, ChunkPosition.ChunkRelTileX, ChunkPosition.ChunkRelTileY);
-
-	return TileChunkValue;
-}
-
-void SetTileValue(Memory_Arena *Arena, Tile_Map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ, uint32 TileValue)
-{
-	Tile_Chunk_Position ChunkPosition = GetChunkPositionFor(TileMap, AbsTileX, AbsTileY, AbsTileZ);
-	Tile_Chunk *TileChunk = GetTileChunk(TileMap, ChunkPosition.TileChunkX, ChunkPosition.TileChunkY, ChunkPosition.TileChunkZ, Arena);
-	SetTileValue(TileMap, TileChunk, ChunkPosition.ChunkRelTileX, ChunkPosition.ChunkRelTileY, TileValue);
-}
+// void SetTileValue(Memory_Arena *Arena, Tile_Map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ, uint32 TileValue)
+// {
+// 	Tile_Chunk_Position ChunkPosition = GetChunkPositionFor(TileMap, AbsTileX, AbsTileY, AbsTileZ);
+// 	Tile_Chunk *TileChunk = GetTileChunk(TileMap, ChunkPosition.TileChunkX, ChunkPosition.TileChunkY, ChunkPosition.TileChunkZ, Arena);
+// 	SetTileValue(TileMap, TileChunk, ChunkPosition.ChunkRelTileX, ChunkPosition.ChunkRelTileY, TileValue);
+// }
 
 bool PositionsAreOnTheSameTile(TileMap_Position *Position1, TileMap_Position *Position2)
 {

@@ -14,14 +14,19 @@ struct Tile_Chunk_Position
 	int32 ChunkRelTileY;
 };
 
+struct Tile_Entity_Block
+{
+	uint32 EntityCount;
+	uint32 LowEntityIndex[16];
+	Tile_Entity_Block *Next;
+};
+
 struct Tile_Chunk
 {
 	int32 TileChunkX;
 	int32 TileChunkY;
 	int32 TileChunkZ;
-
-	uint32 *Tiles;
-
+	Tile_Entity_Block FirstBlock;
 	Tile_Chunk *NextInHash;
 };
 
@@ -53,11 +58,11 @@ struct TileMap_Position
 	Vector Offset;
 };
 
-bool WorldIsEmptyAtPosition(Tile_Map *TileMap, TileMap_Position *Pos);
-void SetTileValue(Memory_Arena *Arena, Tile_Map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ, uint32 TileValue);
+//bool WorldIsEmptyAtPosition(Tile_Map *TileMap, TileMap_Position *Pos);
+//void SetTileValue(Memory_Arena *Arena, Tile_Map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ, uint32 TileValue);
 TileMap_Position MapIntoTileSpace(Tile_Map *TileMap, TileMap_Position BasePos, Vector Offset);
-uint32 GetTileValue(Tile_Map *TileMap, TileMap_Position *Position);
-uint32 GetTileValue(Tile_Map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ);
+//uint32 GetTileValue(Tile_Map *TileMap, TileMap_Position *Position);
+//uint32 GetTileValue(Tile_Map *TileMap, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ);
 bool PositionsAreOnTheSameTile(TileMap_Position *Position1, TileMap_Position *Position2);
 TileMap_Difference Subtract(Tile_Map *TileMap, TileMap_Position *A, TileMap_Position *B);
 void InitializeTileMap(Tile_Map *TileMap, float TileSideInMeters);
