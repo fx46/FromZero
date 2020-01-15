@@ -272,8 +272,9 @@ static void OffsetAndCheckFrequencyByArea(GameState *State, Vector Offset, Recta
 	for (uint32 EntityIndex = 1; EntityIndex < State->HighEntityCount;)
 	{
 		HighF_Entity *High = &State->HighEntities_[EntityIndex];
+		LowF_Entity *Low = &State->LowEntities[EntityIndex];
 		High->Position += Offset;
-		if (IsInRectangle(HighFrequencyBounds, High->Position))
+		if (IsInRectangle(HighFrequencyBounds, High->Position) || Low->HighEntityIndex == 0)	//weird bug fix, iterating on changing array...
 		{
 			++EntityIndex;
 		}
@@ -482,7 +483,7 @@ void GameUpdateAndRencer(/*ThreadContext *Thread,*/ PixelBuffer *Buffer, GameInp
 		bool bDoorDown = false;
 		bool bSwitchedFloor = false;
 
-		for (uint32 ScreenIndex = 0; ScreenIndex < 2; ++ScreenIndex)
+		for (uint32 ScreenIndex = 0; ScreenIndex < 2000; ++ScreenIndex)
 		{
 			bDoorLeft = bDoorRight;
 			bDoorBottom = bDoorTop;
