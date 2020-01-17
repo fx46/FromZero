@@ -22,11 +22,10 @@ struct World_Chunk
 
 struct World
 {
-	int32 ChunkShift;
-	int32 ChunkMask;
-	int32 ChunkDimension;
 	float TileSideInMeters;
+	float ChunkSideInMeters;
 	World_Chunk WorldChunkHash[4096];
+	World_Entity_Block *FirstFree;
 };
 
 struct World_Position_Difference
@@ -37,16 +36,17 @@ struct World_Position_Difference
 
 struct World_Position
 {
-	// Fixed point tile locations, the high bits are the tile chunk index, 
-	// and the low bits are the tile index in the chunk.
-	int32 AbsTileX;
-	int32 AbsTileY;
-	int32 AbsTileZ;
+	int32 ChunkX;
+	int32 ChunkY;
+	int32 ChunkZ;
 
 	Vector Offset;
 };
 
-World_Position MapIntoTileSpace(World *W, World_Position BasePos, Vector Offset);
+World_Chunk * GetWorldChunk(World *W, int32 TileChunkX, int32 TileChunkY, int32 TileChunkZ, Memory_Arena *Arena = 0);
+World_Position MapIntoChunkSpace(World *W, World_Position BasePos, Vector Offset);
 bool PositionsAreOnTheSameTile(World_Position *Position1, World_Position *Position2);
 World_Position_Difference Subtract(World *W, World_Position *A, World_Position *B);
 void InitializeWorld(World *W, float TileSideInMeters);
+World_Position ChunkPositionFromTilePosition(World *W, int32 AbsTileX, int32 AbsTileY, int32 AbsTileZ);
+void ChangeEntityLocation(Memory_Arena *Arena, World *W, uint32 LowEntityIndex, World_Position *OldPosition, World_Position *NewPosition);

@@ -39,3 +39,18 @@ bool IsInRectangle(Rectangle R, Vector V)
 			 V.X <  R.Max.X &&
 			 V.Y <  R.Max.Y );
 }
+
+Vector GetMinCorner(Rectangle R)
+{
+	return Vector(R.Min);
+}
+
+Vector GetMaxCorner(Rectangle R)
+{
+	return Vector(R.Max);
+}
+
+Vector GetCenter(Rectangle R)
+{
+	return 0.5f * (R.Min + R.Max);
+}
